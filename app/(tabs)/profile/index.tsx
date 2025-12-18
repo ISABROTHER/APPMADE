@@ -4,188 +4,263 @@ import {
   Easing,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
-import {
-  ChevronRight,
-  CreditCard,
-  Lock,
-  ShieldCheck,
-  Settings,
-  KeyRound,
-  Bell,
-  HelpCircle,
-  LogOut,
-  User as UserIcon,
-} from 'lucide-react-native';
+import { ChevronRight, LogOut, Mail, ShieldCheck } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
-const BG = '#F3F4F6';
+const GREEN = '#34B67A';
+const BG = '#E9EDF2';
 const TEXT = '#0B1220';
 const MUTED = '#6B7280';
 
-const GREEN = '#34B67A';
+function maskId(id: string) {
+  if (!id) return '•••• ••••';
+  const tail = id.replace(/-/g, '').slice(-6).toUpperCase();
+  return `•••• ${tail.slice(0, 3)} ${tail.slice(3)}`;
+}
 
-// Banner colors (soft pink like screenshot)
-const PINK_BG = '#F7E7E6';
-const PINK_ICON_BG = '#F2CFCF';
-
-// Icon tile colors
-const ORANGE = '#F97316';
-const BLUE = '#2563EB';
-const RED = '#EF4444';
-const GRAY = '#6B7280';
-const INDIGO = '#4F46E5';
-
-function formatNameFromEmail(email?: string | null) {
+function getDisplayName(email?: string | null) {
   if (!email) return 'User';
-  const raw = email.split('@')[0] || 'User';
-  const cleaned = raw.replace(/[._-]+/g, ' ').trim();
-  const parts = cleaned.split(' ').filter(Boolean);
-  const titled = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1));
-  return titled.slice(0, 2).join(' ') || 'User';
+  const namePart = email.split('@')[0] ?? 'User';
+  const cleaned = namePart.replace(/[._-]+/g, ' ').trim();
+  const words = cleaned.split(' ').filter(Boolean);
+  const title = words
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  return title || 'User';
 }
 
-function formatCardNumberFromId(id?: string | null) {
-  if (!id) return '0000 0000';
-  const s = id.replace(/-/g, '').toUpperCase();
-  const tail = s.slice(-8).padStart(8, '0');
-  return `${tail.slice(0, 4)} ${tail.slice(4)}`;
-}
-
-function IconBox({
-  bg,
-  children,
-}: {
-  bg: string;
-  children: React.ReactNode;
-}) {
-  return <View style={[styles.iconBox, { backgroundColor: bg }]}>{children}</View>;
-}
-
-function Row({
-  title,
-  subtitle,
-  left,
-  href,
-  onPress,
-}: {
-  title: string;
-  subtitle?: string;
-  left: React.ReactNode;
-  href?: string;
-  onPress?: () => void;
-}) {
-  const content = (
-    <View style={styles.rowInner}>
-      <View style={styles.rowLeft}>{left}</View>
-      <View style={styles.rowText}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text style={styles.rowSub} numberOfLines={2}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      <ChevronRight size={18} color="rgba(11,18,32,0.35)" />
-    </View>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} asChild>
-        <Pressable style={({ pressed }) => [styles.row, pressed ? styles.pressed : null]} accessibilityRole="button">
-          {content}
-        </Pressable>
-      </Link>
-    );
-  }
+function FauxQr() {
+  const cells = useMemo(() => {
+    const out: boolean[] = [];
+    for (let i = 0; i < 11 * 11; i += 1) {
+      const v = (i * 7 + Math.floor(i / 3) * 11) % 17;
+      out.push(v % 3 === 0 || v % 5 === 0);
+    }
+    return out;
+  }, []);
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed ? styles.pressed : null]}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-    >
-      {content}
-    </Pressable>
+    <View style={styles.qrWrap} accessibilityLabel="Verification code">
+      {cells.map((on, idx) => (
+        <View key={idx} style={[styles.qrCell, on ? styles.qrOn : styles.qrOff]} />
+      ))}
+    </View>
   );
 }
 
-function SectionCard({ children }: { children: React.ReactNode }) {
-  return <View style={styles.sectionCard}>{children}</View>;
-}
-
-function CardPreview({
-  name,
-  cardNumber,
+function DigitalCard({
+  email,
+  userId,
   avatarUrl,
 }: {
-  name: string;
-  cardNumber: string;
+  email?: string | null;
+  userId?: string | null;
   avatarUrl?: string | null;
 }) {
+  const [flipped, setFlipped] = useState(false);
+
+  const flipAnim = useRef(new Animated.Value(0)).current;
   const shineAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(shineAnim, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(shineAnim, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(shineAnim, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(shineAnim, {
+          toValue: 0,
+          duration: 2200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
       ])
     );
     loop.start();
     return () => loop.stop();
   }, [shineAnim]);
 
-  const shineX = shineAnim.interpolate({ inputRange: [0, 1], outputRange: [-120, 220] });
+  useEffect(() => {
+    Animated.timing(flipAnim, {
+      toValue: flipped ? 1 : 0,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [flipped, flipAnim]);
 
-  const initial = (name?.charAt(0) || 'U').toUpperCase();
+  const rotateYFront = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const rotateYBack = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['180deg', '360deg'],
+  });
+
+  const shineX = shineAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-140, 220],
+  });
+
+  const name = getDisplayName(email);
+  const initial = (email?.charAt(0) || 'U').toUpperCase();
+  const cardId = maskId(userId || '');
 
   return (
-    <Link href="/(tabs)/profile/card" asChild>
-      <Pressable style={({ pressed }) => [styles.cardShell, pressed ? styles.pressed : null]} accessibilityRole="button">
-        <View style={styles.card}>
-          <View style={styles.cardLeftGold}>
-            <Text style={styles.cardCurrency}>GHS</Text>
-            <Text style={styles.cardAmount}>0.00</Text>
-            <Text style={styles.cardLabel}>Card Balance</Text>
-          </View>
+    <Pressable
+      onPress={() => setFlipped((v) => !v)}
+      style={styles.cardPress}
+      accessibilityRole="button"
+      accessibilityLabel="Digital card"
+      accessibilityHint="Tap to flip the card"
+    >
+      <View style={styles.cardStage}>
+        {/* FRONT */}
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              transform: [{ perspective: 900 }, { rotateY: rotateYFront }],
+            },
+          ]}
+        >
+          <View pointerEvents="none" style={styles.cardGlass} />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.cardShine,
+              { transform: [{ translateX: shineX }, { rotateZ: '12deg' }] },
+            ]}
+          />
 
-          <View style={styles.cardRight}>
-            <View pointerEvents="none" style={styles.cardPattern} />
-            <Animated.View
-              pointerEvents="none"
-              style={[styles.cardShine, { transform: [{ translateX: shineX }, { rotateZ: '12deg' }] }]}
-            />
-
-            <View style={styles.cardAvatarRow}>
-              <View style={styles.avatar}>
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-                ) : (
-                  <Text style={styles.avatarInitial}>{initial}</Text>
-                )}
-              </View>
-              <View style={styles.cardVerifiedPill}>
-                <ShieldCheck size={14} color={GREEN} />
-                <Text style={styles.cardVerifiedText}>Verified</Text>
-              </View>
+          <View style={styles.cardTopRow}>
+            <View style={styles.brandPill}>
+              <Text style={styles.brandText}>DIGITAL ID</Text>
             </View>
 
-            <Text style={styles.cardName}>{name}</Text>
-            <Text style={styles.cardNumber}>{cardNumber}</Text>
-            <Text style={styles.cardNumberLabel}>Card Number</Text>
+            <View style={styles.verifiedPill}>
+              <ShieldCheck size={14} color={GREEN} />
+              <Text style={styles.verifiedText}>Verified</Text>
+            </View>
           </View>
+
+          <View style={styles.cardMainRow}>
+            <View style={styles.photoWrap}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.photo} />
+              ) : (
+                <View style={styles.photoFallback}>
+                  <Text style={styles.photoInitial}>{initial}</Text>
+                </View>
+              )}
+              <View pointerEvents="none" style={styles.photoRing} />
+            </View>
+
+            <View style={styles.cardInfo}>
+              <Text numberOfLines={1} style={styles.cardName}>
+                {name}
+              </Text>
+              <View style={styles.emailRow}>
+                <Mail size={14} color="rgba(107,114,128,0.95)" />
+                <Text numberOfLines={1} style={styles.cardEmail}>
+                  {email || '—'}
+                </Text>
+              </View>
+
+              <View style={styles.cardMetaRow}>
+                <View style={styles.metaPill}>
+                  <Text style={styles.metaLabel}>ID</Text>
+                  <Text style={styles.metaValue}>{cardId}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.cardBottomRow}>
+            <Text style={styles.tapHint}>Tap to flip</Text>
+            <View style={styles.securityDots}>
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* BACK */}
+        <Animated.View
+          style={[
+            styles.card,
+            styles.cardBack,
+            {
+              transform: [{ perspective: 900 }, { rotateY: rotateYBack }],
+            },
+          ]}
+        >
+          <View pointerEvents="none" style={styles.cardGlass} />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.cardShine,
+              { transform: [{ translateX: shineX }, { rotateZ: '12deg' }] },
+            ]}
+          />
+
+          <View style={styles.backStripe} />
+
+          <View style={styles.backContent}>
+            <Text style={styles.backTitle}>Scan to verify</Text>
+            <Text style={styles.backSub}>Present this code to confirm identity in-app.</Text>
+
+            <View style={styles.backQrRow}>
+              <FauxQr />
+              <View style={styles.backRight}>
+                <View style={styles.backPill}>
+                  <Text style={styles.backPillLabel}>Status</Text>
+                  <Text style={styles.backPillValue}>Verified</Text>
+                </View>
+                <View style={styles.backPill}>
+                  <Text style={styles.backPillLabel}>Card ID</Text>
+                  <Text style={styles.backPillValue}>{cardId}</Text>
+                </View>
+                <Text style={styles.tapHintBack}>Tap to flip back</Text>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+      </View>
+    </Pressable>
+  );
+}
+
+function RowLink({
+  title,
+  subtitle,
+  href,
+}: {
+  title: string;
+  subtitle: string;
+  href: string;
+}) {
+  return (
+    <Link href={href} asChild>
+      <Pressable style={({ pressed }) => [styles.rowLink, pressed ? styles.pressed : null]}>
+        <View style={styles.rowLinkText}>
+          <Text style={styles.rowTitle}>{title}</Text>
+          <Text style={styles.rowSub}>{subtitle}</Text>
         </View>
+        <ChevronRight size={18} color="rgba(11,18,32,0.45)" />
       </Pressable>
     </Link>
   );
@@ -193,9 +268,6 @@ function CardPreview({
 
 export default function ProfileIndexScreen() {
   const { user, signOut } = useAuth();
-
-  const name = useMemo(() => formatNameFromEmail(user?.email ?? null), [user?.email]);
-  const cardNumber = useMemo(() => formatCardNumberFromId(user?.id ?? null), [user?.id]);
 
   const avatarUrl =
     (user?.user_metadata as Record<string, unknown> | undefined)?.avatar_url as string | undefined;
@@ -210,193 +282,121 @@ export default function ProfileIndexScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <Text style={styles.headerSub}>Manage your card, security and account.</Text>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.bg}>
+        <View pointerEvents="none" style={styles.blobA} />
+        <View pointerEvents="none" style={styles.blobB} />
+      </View>
 
-        {/* Card preview (tap to open Card Details) */}
-        <CardPreview name={name} cardNumber={cardNumber} avatarUrl={avatarUrl ?? null} />
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerSub}>Your digital identity card and account settings.</Text>
+      </View>
 
-        {/* Banner (like screenshot) */}
-        <Link href="/(tabs)/profile/security" asChild>
-          <Pressable style={({ pressed }) => [styles.banner, pressed ? styles.pressed : null]} accessibilityRole="button">
-            <View style={styles.bannerIcon}>
-              <Lock size={20} color={RED} />
-            </View>
-            <View style={styles.bannerText}>
-              <Text style={styles.bannerTitle}>Secure your account</Text>
-              <Text style={styles.bannerSub}>Enable extra protection for your profile</Text>
-            </View>
-            <ChevronRight size={18} color="rgba(11,18,32,0.35)" />
-          </Pressable>
-        </Link>
+      <View style={styles.content}>
+        <DigitalCard email={user?.email ?? null} userId={user?.id ?? null} avatarUrl={avatarUrl ?? null} />
 
-        {/* Large single rows */}
-        <SectionCard>
-          <Row
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>More</Text>
+
+          <RowLink
             title="My Card"
-            subtitle="View card details and actions"
-            left={
-              <IconBox bg={ORANGE}>
-                <CreditCard size={18} color="#FFFFFF" />
-              </IconBox>
-            }
+            subtitle="Open your digital card in full view"
             href="/(tabs)/profile/card"
           />
-        </SectionCard>
-
-        <SectionCard>
-          <Row
+          <RowLink
             title="Settings"
             subtitle="Preferences and account controls"
-            left={
-              <IconBox bg={GRAY}>
-                <Settings size={18} color="#FFFFFF" />
-              </IconBox>
-            }
             href="/(tabs)/profile/settings"
           />
-        </SectionCard>
-
-        {/* Grouped list (like screenshot) */}
-        <SectionCard>
-          <View style={styles.dividerRow}>
-            <Row
-              title="Security"
-              subtitle="Password and sign-in security"
-              left={
-                <IconBox bg={INDIGO}>
-                  <KeyRound size={18} color="#FFFFFF" />
-                </IconBox>
-              }
-              href="/(tabs)/profile/security"
-            />
-          </View>
-
-          <View style={styles.dividerRow}>
-            <Row
-              title="Notifications"
-              subtitle="Control alerts and updates"
-              left={
-                <IconBox bg={BLUE}>
-                  <Bell size={18} color="#FFFFFF" />
-                </IconBox>
-              }
-              onPress={() => {}}
-            />
-          </View>
-
-          <Row
-            title="Help & Support"
-            subtitle="Get assistance and FAQs"
-            left={
-              <IconBox bg={BLUE}>
-                <HelpCircle size={18} color="#FFFFFF" />
-              </IconBox>
-            }
-            onPress={() => {}}
+          <RowLink
+            title="Security"
+            subtitle="Password and sign-in security"
+            href="/(tabs)/profile/security"
           />
-        </SectionCard>
 
-        {/* Account section */}
-        <SectionCard>
-          <Row
-            title="Account"
-            subtitle="Profile information"
-            left={
-              <IconBox bg={GREEN}>
-                <UserIcon size={18} color="#FFFFFF" />
-              </IconBox>
-            }
-            onPress={() => {}}
-          />
-        </SectionCard>
-
-        {/* Sign out */}
-        <SectionCard>
           <Pressable
+            style={({ pressed }) => [styles.signOutButton, pressed ? styles.pressed : null]}
             onPress={handleSignOut}
-            style={({ pressed }) => [styles.row, pressed ? styles.pressed : null]}
             accessibilityRole="button"
             accessibilityLabel="Sign out"
           >
-            <View style={styles.rowInner}>
-              <View style={styles.rowLeft}>
-                <IconBox bg={RED}>
-                  <LogOut size={18} color="#FFFFFF" />
-                </IconBox>
-              </View>
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle}>Sign out</Text>
-                <Text style={styles.rowSub}>Log out from this device</Text>
-              </View>
-              <ChevronRight size={18} color="rgba(11,18,32,0.35)" />
-            </View>
+            <LogOut size={20} color="#FF3B30" />
+            <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
-        </SectionCard>
-
-        <View style={{ height: 16 }} />
-      </ScrollView>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 },
+  container: { flex: 1, backgroundColor: BG },
 
-  header: { paddingHorizontal: 2, paddingBottom: 8 },
+  bg: { ...StyleSheet.absoluteFillObject, backgroundColor: BG },
+  blobA: {
+    position: 'absolute',
+    top: -140,
+    left: -140,
+    width: 340,
+    height: 340,
+    borderRadius: 340,
+    backgroundColor: 'rgba(52,182,122,0.18)',
+  },
+  blobB: {
+    position: 'absolute',
+    bottom: -150,
+    right: -140,
+    width: 360,
+    height: 360,
+    borderRadius: 360,
+    backgroundColor: 'rgba(59,130,246,0.14)',
+  },
+
+  header: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 10 },
   headerTitle: { fontSize: 30, fontWeight: '900', color: TEXT, letterSpacing: -0.2 },
-  headerSub: { marginTop: 6, fontSize: 12.5, fontWeight: '800', color: 'rgba(107,114,128,0.95)' },
+  headerSub: { marginTop: 6, fontSize: 12.5, fontWeight: '700', color: 'rgba(107,114,128,0.95)' },
 
-  // Card preview
-  cardShell: { marginTop: 10 },
+  content: { flex: 1, paddingHorizontal: 18, paddingTop: 8 },
+
+  cardPress: { width: '100%', marginTop: 10, marginBottom: 16 },
+  cardStage: { height: 210 },
+
   card: {
-    height: 150,
-    borderRadius: 20,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 210,
+    borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: 'rgba(255,255,255,0.62)',
     shadowColor: '#0B1220',
     shadowOpacity: 0.10,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 14 },
     elevation: 3,
+    padding: 16,
+    backfaceVisibility: 'hidden',
   },
-  cardLeftGold: { width: 118, backgroundColor: '#D4A14A', padding: 14, justifyContent: 'flex-end' },
-  cardCurrency: { color: '#FFFFFF', fontWeight: '800', fontSize: 14, opacity: 0.95 },
-  cardAmount: { color: '#FFFFFF', fontWeight: '900', fontSize: 34, marginTop: 2, letterSpacing: -0.6 },
-  cardLabel: { color: 'rgba(255,255,255,0.92)', fontWeight: '800', fontSize: 12.5, marginTop: 2 },
+  cardBack: {},
 
-  cardRight: { flex: 1, padding: 14, justifyContent: 'center', backgroundColor: '#F4F5F7' },
-  cardPattern: {
-    position: 'absolute',
-    inset: 0,
-    opacity: 0.12,
-    backgroundColor: 'transparent',
+  cardGlass: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.12)' },
+  cardShine: { position: 'absolute', top: -30, bottom: -30, width: 90, backgroundColor: 'rgba(255,255,255,0.22)' },
+
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brandPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(107,114,128,0.20)',
+    borderColor: 'rgba(255,255,255,0.55)',
   },
-  cardShine: { position: 'absolute', top: -30, bottom: -30, width: 86, backgroundColor: 'rgba(255,255,255,0.22)' },
+  brandText: { fontSize: 11, fontWeight: '900', color: TEXT, letterSpacing: 0.8 },
 
-  cardAvatarRow: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: GREEN,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarImg: { width: '100%', height: '100%' },
-  avatarInitial: { color: '#FFFFFF', fontWeight: '900' },
-
-  cardVerifiedPill: {
+  verifiedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -407,57 +407,117 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(52,182,122,0.18)',
   },
-  cardVerifiedText: { fontSize: 11.5, fontWeight: '900', color: GREEN },
+  verifiedText: { fontSize: 11.5, fontWeight: '900', color: GREEN },
 
-  cardName: { fontSize: 18, fontWeight: '900', color: 'rgba(11,18,32,0.78)', textAlign: 'center' },
-  cardNumber: { marginTop: 6, fontSize: 28, fontWeight: '900', color: 'rgba(11,18,32,0.72)', textAlign: 'center', letterSpacing: -0.3 },
-  cardNumberLabel: { marginTop: 2, fontSize: 12.5, fontWeight: '800', color: 'rgba(107,114,128,0.95)', textAlign: 'center' },
+  cardMainRow: { flexDirection: 'row', alignItems: 'center', marginTop: 18 },
 
-  // Banner
-  banner: {
-    marginTop: 14,
-    backgroundColor: PINK_BG,
-    borderRadius: 16,
-    padding: 14,
+  photoWrap: { width: 74, height: 74, borderRadius: 20, overflow: 'hidden', marginRight: 12 },
+  photo: { width: '100%', height: '100%', borderRadius: 20 },
+  photoFallback: { width: '100%', height: '100%', borderRadius: 20, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  photoInitial: { fontSize: 28, fontWeight: '900', color: '#FFFFFF' },
+  photoRing: { ...StyleSheet.absoluteFillObject, borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)', borderRadius: 20 },
+
+  cardInfo: { flex: 1, minWidth: 0 },
+  cardName: { fontSize: 18, fontWeight: '900', color: TEXT, letterSpacing: -0.2 },
+  emailRow: { marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardEmail: { flex: 1, fontSize: 12.5, fontWeight: '800', color: 'rgba(107,114,128,0.95)' },
+
+  cardMetaRow: { marginTop: 10, flexDirection: 'row' },
+  metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
   },
-  bannerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: PINK_ICON_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bannerText: { flex: 1, minWidth: 0 },
-  bannerTitle: { fontSize: 14.5, fontWeight: '900', color: TEXT },
-  bannerSub: { marginTop: 4, fontSize: 12.5, fontWeight: '800', color: 'rgba(107,114,128,0.95)' },
+  metaLabel: { fontSize: 11, fontWeight: '900', color: MUTED, letterSpacing: 0.8 },
+  metaValue: { fontSize: 12, fontWeight: '900', color: TEXT, letterSpacing: 0.4 },
 
-  // Sections
-  sectionCard: {
-    marginTop: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    overflow: 'hidden',
+  cardBottomRow: { marginTop: 'auto', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tapHint: { fontSize: 12, fontWeight: '900', color: 'rgba(107,114,128,0.9)' },
+  securityDots: { flexDirection: 'row', gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 6, backgroundColor: 'rgba(11,18,32,0.18)' },
+
+  backStripe: { height: 30, borderRadius: 12, backgroundColor: 'rgba(11,18,32,0.12)', marginTop: 8 },
+  backContent: { marginTop: 12 },
+  backTitle: { fontSize: 16, fontWeight: '900', color: TEXT },
+  backSub: { marginTop: 4, fontSize: 12.5, fontWeight: '800', color: 'rgba(107,114,128,0.95)' },
+
+  backQrRow: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  qrWrap: {
+    width: 92,
+    height: 92,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.60)',
+    padding: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  qrCell: { width: 6, height: 6, margin: 1, borderRadius: 2 },
+  qrOn: { backgroundColor: 'rgba(11,18,32,0.82)' },
+  qrOff: { backgroundColor: 'rgba(11,18,32,0.06)' },
+
+  backRight: { flex: 1, minWidth: 0 },
+  backPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+    marginBottom: 8,
+  },
+  backPillLabel: { fontSize: 11, fontWeight: '900', color: MUTED, letterSpacing: 0.6 },
+  backPillValue: { marginTop: 2, fontSize: 12.5, fontWeight: '900', color: TEXT },
+  tapHintBack: { marginTop: 2, fontSize: 12, fontWeight: '900', color: 'rgba(107,114,128,0.9)' },
+
+  section: {
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
     shadowColor: '#0B1220',
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
     elevation: 2,
   },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: TEXT, marginBottom: 10 },
 
-  row: { paddingHorizontal: 14, paddingVertical: 14 },
-  rowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowLeft: { width: 44, alignItems: 'flex-start' },
-  rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { fontSize: 16, fontWeight: '900', color: TEXT },
-  rowSub: { marginTop: 4, fontSize: 12.5, fontWeight: '800', color: 'rgba(107,114,128,0.95)' },
+  rowLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+    marginBottom: 10,
+  },
+  rowLinkText: { flex: 1, paddingRight: 10 },
+  rowTitle: { fontSize: 14.5, fontWeight: '900', color: TEXT },
+  rowSub: { marginTop: 3, fontSize: 12.2, fontWeight: '800', color: 'rgba(107,114,128,0.95)' },
 
-  iconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-
-  dividerRow: { borderBottomWidth: 1, borderBottomColor: 'rgba(229,231,235,1)' },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    backgroundColor: 'rgba(255,59,48,0.08)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,59,48,0.16)',
+    marginTop: 2,
+  },
+  signOutText: { fontSize: 15, fontWeight: '900', color: '#FF3B30' },
 
   pressed: { opacity: 0.92 },
 });

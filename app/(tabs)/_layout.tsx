@@ -1,6 +1,5 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, User } from 'lucide-react-native';
 import {
   Platform,
   Pressable,
@@ -9,9 +8,10 @@ import {
   View,
 } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { CheckSquare, User } from 'lucide-react-native';
 
-const ACTIVE = '#7A0B0B';
-const INACTIVE = '#9CA3AF';
+const GREEN = '#34B67A';
+const INACTIVE = '#8E8E93';
 const BAR_BG = 'rgba(255,255,255,0.92)';
 const BAR_BORDER = 'rgba(229,229,234,0.9)';
 
@@ -32,13 +32,13 @@ function ModernTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 ? options.title
                 : route.name;
 
-          const color = focused ? ACTIVE : INACTIVE;
+          const color = focused ? GREEN : INACTIVE;
 
           const icon =
             options.tabBarIcon?.({
               focused,
               color,
-              size: 24,
+              size: 22,
             }) ?? null;
 
           const onPress = () => {
@@ -70,6 +70,7 @@ function ModernTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={typeof label === 'string' ? label : route.name}
             >
+              {/* Active highlight capsule behind icon (matches screenshot format) */}
               <View style={[styles.iconCapsule, focused ? styles.iconCapsuleActive : styles.iconCapsuleIdle]}>
                 {icon}
               </View>
@@ -90,7 +91,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: ACTIVE,
+        tabBarActiveTintColor: GREEN,
         tabBarInactiveTintColor: INACTIVE,
       }}
       tabBar={(props) => <ModernTabBar {...props} />}
@@ -98,11 +99,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
+          title: 'Tasks',
+          tabBarIcon: ({ size, color }) => <CheckSquare size={size} color={color} />,
         }}
       />
-
       <Tabs.Screen
         name="profile"
         options={{
@@ -119,26 +119,31 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: 'transparent',
     borderTopWidth: 0,
-    height: 78,
+    height: 78, // matches the screenshot “tall enough but not bulky”
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 14 : 12,
   },
+
   tabBarSurface: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: BAR_BG,
     borderTopWidth: 1,
     borderTopColor: BAR_BORDER,
+
+    // subtle lift like modern apps
     shadowColor: '#0B1220',
     shadowOpacity: 0.06,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: -10 },
     elevation: 10,
   },
+
   row: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   item: {
     flex: 1,
     alignItems: 'center',
@@ -147,6 +152,8 @@ const styles = StyleSheet.create({
   itemPressed: {
     opacity: 0.92,
   },
+
+  // Icon capsule sizing is the key to screenshot-like spacing
   iconCapsule: {
     width: 46,
     height: 32,
@@ -156,20 +163,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   iconCapsuleActive: {
-    backgroundColor: 'rgba(122,11,11,0.10)',
+    backgroundColor: 'rgba(52,182,122,0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(122,11,11,0.18)',
+    borderColor: 'rgba(52,182,122,0.22)',
   },
   iconCapsuleIdle: {
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'transparent',
   },
+
   label: {
     fontSize: 11.5,
     fontWeight: '800',
     letterSpacing: 0.1,
   },
-  labelActive: { color: ACTIVE },
-  labelIdle: { color: INACTIVE },
+  labelActive: {
+    color: GREEN,
+  },
+  labelIdle: {
+    color: INACTIVE,
+  },
 });
