@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -14,8 +14,15 @@ import {
   View,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { Apple, Eye, EyeOff, Lock, Mail, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+
+const GREEN = '#34B67A';
+const BG = '#EEF1F4';
+const CARD = '#FFFFFF';
+const TEXT = '#0B1220';
+const MUTED = '#6B7280';
+const BORDER = '#E6E9EE';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -27,422 +34,188 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  const headerAnim = useRef(new Animated.Value(0)).current;
-  const formAnim = useRef(new Animated.Value(0)).current;
-
-  const blobA = useRef(new Animated.Value(0)).current;
-  const blobB = useRef(new Animated.Value(0)).current;
-
-  const emailFocus = useRef(new Animated.Value(0)).current;
-  const passFocus = useRef(new Animated.Value(0)).current;
-
-  const buttonScale = useRef(new Animated.Value(1)).current;
-
-  const shakeX = useRef(new Animated.Value(0)).current;
+  const enter = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(headerAnim, {
-        toValue: 1,
-        duration: 540,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(formAnim, {
-        toValue: 1,
-        duration: 650,
-        delay: 90,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    const loopA = Animated.loop(
-      Animated.sequence([
-        Animated.timing(blobA, {
-          toValue: 1,
-          duration: 5200,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(blobA, {
-          toValue: 0,
-          duration: 5200,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const loopB = Animated.loop(
-      Animated.sequence([
-        Animated.timing(blobB, {
-          toValue: 1,
-          duration: 6200,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(blobB, {
-          toValue: 0,
-          duration: 6200,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    loopA.start();
-    loopB.start();
-
-    return () => {
-      loopA.stop();
-      loopB.stop();
-    };
-  }, [blobA, blobB, formAnim, headerAnim]);
-
-  const canSubmit = useMemo(() => {
-    if (loading) return false;
-    if (!email.trim()) return false;
-    if (!password) return false;
-    return true;
-  }, [email, loading, password]);
-
-  const animateFocus = (v: Animated.Value, to: number) => {
-    Animated.timing(v, {
-      toValue: to,
-      duration: 160,
-      easing: Easing.out(Easing.quad),
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  };
-
-  const shake = () => {
-    shakeX.setValue(0);
-    Animated.sequence([
-      Animated.timing(shakeX, { toValue: 1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: -1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: -1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
-    ]).start();
-  };
-
-  const setAndShakeError = (msg: string) => {
-    setError(msg);
-    shake();
-  };
+  }, [enter]);
 
   const handleSignIn = async () => {
-    if (!email || !password) {
-      setAndShakeError('Please enter your email and password');
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    const { error: signInError } = await signIn(email, password);
+    const { error: signInError } = await signIn(email.trim(), password);
 
     if (signInError) {
-      setAndShakeError(signInError.message);
+      setError(signInError.message);
       setLoading(false);
       return;
     }
 
+    // "Remember me" is UI-only for now; wire to secure storage if you want later.
     router.replace('/(tabs)');
   };
 
-  const handleSocialSignIn = (provider: 'apple' | 'google') => {
-    setAndShakeError(
-      provider === 'apple'
-        ? 'Apple sign-in is not connected yet. Tell me your auth provider (e.g., Supabase/Firebase) and I will wire it.'
-        : 'Google sign-in is not connected yet. Tell me your auth provider (e.g., Supabase/Firebase) and I will wire it.'
-    );
-  };
-
-  const handleGuest = () => {
-    router.replace('/(tabs)');
-  };
-
-  const blobATransform = {
+  const pageAnimStyle = {
+    opacity: enter,
     transform: [
       {
-        translateX: blobA.interpolate({
+        translateY: enter.interpolate({
           inputRange: [0, 1],
-          outputRange: [-18, 34],
-        }),
-      },
-      {
-        translateY: blobA.interpolate({
-          inputRange: [0, 1],
-          outputRange: [-14, 24],
-        }),
-      },
-      {
-        scale: blobA.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 1.15],
-        }),
-      },
-    ],
-    opacity: blobA.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.35, 0.55],
-    }),
-  } as const;
-
-  const blobBTransform = {
-    transform: [
-      {
-        translateX: blobB.interpolate({
-          inputRange: [0, 1],
-          outputRange: [26, -26],
-        }),
-      },
-      {
-        translateY: blobB.interpolate({
-          inputRange: [0, 1],
-          outputRange: [22, -16],
-        }),
-      },
-      {
-        scale: blobB.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 1.18],
-        }),
-      },
-    ],
-    opacity: blobB.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.25, 0.45],
-    }),
-  } as const;
-
-  const headerStyle = {
-    opacity: headerAnim,
-    transform: [
-      {
-        translateY: headerAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [12, 0],
+          outputRange: [10, 0],
         }),
       },
     ],
   } as const;
-
-  const formStyle = {
-    opacity: formAnim,
-    transform: [
-      {
-        translateY: formAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [16, 0],
-        }),
-      },
-      {
-        translateX: shakeX.interpolate({
-          inputRange: [-1, 0, 1],
-          outputRange: [-7, 0, 7],
-        }),
-      },
-    ],
-  } as const;
-
-  const makeFieldAnimatedStyle = (focusV: Animated.Value) =>
-    ({
-      transform: [
-        {
-          scale: focusV.interpolate({
-            inputRange: [0, 1],
-            outputRange: [1, 1.01],
-          }),
-        },
-      ],
-    }) as const;
-
-  const makeGlowAnimatedStyle = (focusV: Animated.Value) =>
-    ({
-      opacity: focusV.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 1],
-      }),
-    }) as const;
-
-  const onPressInButton = () => {
-    Animated.timing(buttonScale, {
-      toValue: 0.98,
-      duration: 120,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const onPressOutButton = () => {
-    Animated.timing(buttonScale, {
-      toValue: 1,
-      duration: 140,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View pointerEvents="none" style={styles.bg}>
-        <Animated.View style={[styles.blob, styles.blobA, blobATransform]} />
-        <Animated.View style={[styles.blob, styles.blobB, blobBTransform]} />
-      </View>
-
+    <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
-          <View style={styles.pageMax}>
-            <Animated.View style={[styles.header, headerStyle]}>
-              <View style={styles.logoRing}>
-                <View style={styles.logoInner}>
-                  <Sparkles size={42} color="#0A84FF" />
-                </View>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+          <Animated.View style={[styles.phoneCard, pageAnimStyle]}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+              <ChevronLeft size={18} color={TEXT} />
+            </Pressable>
+
+            <Text style={styles.title}>Log in</Text>
+            <Text style={styles.subtitle}>
+              Enter your email and password to securely access{'\n'}your account and manage your services.
+            </Text>
+
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
               </View>
+            ) : null}
 
-              <Text style={styles.title}>Welcome back</Text>
-              <Text style={styles.subtitle}>Sign in to continue</Text>
-            </Animated.View>
-
-            <Animated.View style={[styles.card, formStyle]}>
-              {error && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              )}
-
-              <View style={styles.socialRow}>
-                <Pressable
-                  onPress={() => handleSocialSignIn('apple')}
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.socialBtn,
-                    styles.socialBtnFirst,
-                    pressed && !loading ? styles.socialBtnPressed : null,
-                    loading ? styles.socialBtnDisabled : null,
-                  ]}>
-                  <Apple size={18} color="#111827" />
-                  <Text style={styles.socialText}>Apple</Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => handleSocialSignIn('google')}
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.socialBtn,
-                    pressed && !loading ? styles.socialBtnPressed : null,
-                    loading ? styles.socialBtnDisabled : null,
-                  ]}>
-                  <View style={styles.googleBadge}>
-                    <Text style={styles.googleBadgeText}>G</Text>
-                  </View>
-                  <Text style={styles.socialText}>Google</Text>
-                </Pressable>
+            {/* Email */}
+            <View style={styles.inputPill}>
+              <View style={styles.leftIcon}>
+                <Mail size={18} color={MUTED} />
               </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Email address"
+                placeholderTextColor={MUTED}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={(t) => {
+                  setEmail(t);
+                  if (error) setError(null);
+                }}
+                editable={!loading}
+                returnKeyType="next"
+              />
+            </View>
 
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
+            {/* Password */}
+            <View style={styles.inputPill}>
+              <View style={styles.leftIcon}>
+                <Lock size={18} color={MUTED} />
               </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor={MUTED}
+                value={password}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  if (error) setError(null);
+                }}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (!loading) void handleSignIn();
+                }}
+              />
+              <Pressable onPress={() => setShowPassword((s) => !s)} style={styles.rightIcon} hitSlop={10}>
+                {showPassword ? <EyeOff size={18} color={MUTED} /> : <Eye size={18} color={MUTED} />}
+              </Pressable>
+            </View>
 
-              <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(emailFocus)]}>
-                <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(emailFocus)]} />
-                <View style={styles.field}>
-                  <View style={styles.fieldIcon}>
-                    <Mail size={18} color="#6B7280" />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email address"
-                    value={email}
-                    onChangeText={(t) => {
-                      setEmail(t);
-                      if (error) setError(null);
-                    }}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    placeholderTextColor="#9CA3AF"
-                    onFocus={() => animateFocus(emailFocus, 1)}
-                    onBlur={() => animateFocus(emailFocus, 0)}
-                    editable={!loading}
-                    returnKeyType="next"
-                  />
+            {/* Remember / Forgot */}
+            <View style={styles.rowBetween}>
+              <Pressable
+                onPress={() => setRememberMe((v) => !v)}
+                style={styles.rememberRow}
+                hitSlop={8}>
+                <View style={[styles.checkbox, rememberMe ? styles.checkboxOn : null]}>
+                  {rememberMe ? <View style={styles.checkboxDot} /> : null}
                 </View>
-              </Animated.View>
-
-              <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(passFocus)]}>
-                <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(passFocus)]} />
-                <View style={styles.field}>
-                  <View style={styles.fieldIcon}>
-                    <Lock size={18} color="#6B7280" />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={(t) => {
-                      setPassword(t);
-                      if (error) setError(null);
-                    }}
-                    secureTextEntry={!showPassword}
-                    placeholderTextColor="#9CA3AF"
-                    onFocus={() => animateFocus(passFocus, 1)}
-                    onBlur={() => animateFocus(passFocus, 0)}
-                    editable={!loading}
-                    returnKeyType="done"
-                    onSubmitEditing={() => {
-                      if (!loading) void handleSignIn();
-                    }}
-                  />
-                  <Pressable onPress={() => setShowPassword((s) => !s)} style={styles.trailingIcon} hitSlop={10}>
-                    {showPassword ? <EyeOff size={18} color="#6B7280" /> : <Eye size={18} color="#6B7280" />}
-                  </Pressable>
-                </View>
-
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaHint}>Tip: Use a strong password.</Text>
-                  <Link href="/(auth)/forgot-password" asChild>
-                    <Pressable hitSlop={8}>
-                      <Text style={styles.metaLink}>Forgot?</Text>
-                    </Pressable>
-                  </Link>
-                </View>
-              </Animated.View>
-
-              <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                <Pressable
-                  onPress={handleSignIn}
-                  disabled={!canSubmit}
-                  onPressIn={onPressInButton}
-                  onPressOut={onPressOutButton}
-                  style={({ pressed }) => [
-                    styles.button,
-                    pressed && canSubmit ? styles.buttonPressed : null,
-                    !canSubmit ? styles.buttonDisabled : null,
-                  ]}>
-                  {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign in</Text>}
-                </Pressable>
-              </Animated.View>
-
-              <Pressable onPress={handleGuest} style={styles.ghostBtn} hitSlop={8}>
-                <Text style={styles.ghostText}>Continue as guest</Text>
+                <Text style={styles.rememberText}>Remember me</Text>
               </Pressable>
 
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>New here? </Text>
-                <Link href="/(auth)/signup" asChild>
-                  <Pressable hitSlop={8}>
-                    <Text style={styles.link}>Create account</Text>
-                  </Pressable>
-                </Link>
-              </View>
-            </Animated.View>
-          </View>
+              <Link href="/(auth)/forgot-password" asChild>
+                <Pressable hitSlop={8}>
+                  <Text style={styles.forgotText}>Forgot Password</Text>
+                </Pressable>
+              </Link>
+            </View>
+
+            {/* Button */}
+            <Pressable
+              onPress={handleSignIn}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                pressed && !loading ? styles.primaryBtnPressed : null,
+                loading ? styles.primaryBtnDisabled : null,
+              ]}>
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryBtnText}>Login</Text>}
+            </Pressable>
+
+            {/* Switch */}
+            <View style={styles.switchRow}>
+              <Text style={styles.switchText}>Don’t have an account? </Text>
+              <Link href="/(auth)/signup" asChild>
+                <Pressable hitSlop={8}>
+                  <Text style={styles.switchLink}>Sign Up here</Text>
+                </Pressable>
+              </Link>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.dividerWrap}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>Or Continue With Account</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social */}
+            <View style={styles.socialRow}>
+              <Pressable
+                onPress={() => setError('Facebook sign-in is not connected yet.')}
+                style={[styles.socialBtn, styles.socialBtnFirst]}
+                hitSlop={8}>
+                <Text style={styles.socialLetter}>f</Text>
+              </Pressable>
+
+              <Pressable onPress={() => setError('Google sign-in is not connected yet.')} style={styles.socialBtn} hitSlop={8}>
+                <Text style={styles.socialLetter}>G</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setError('Apple sign-in is not connected yet.')}
+                style={[styles.socialBtn, styles.socialBtnLast]}
+                hitSlop={8}>
+                <Text style={styles.socialLetter}></Text>
+              </Pressable>
+            </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -451,129 +224,178 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  safe: { flex: 1, backgroundColor: BG },
 
-  bg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#F9FAFB' },
-  blob: { position: 'absolute', width: 260, height: 260, borderRadius: 260 },
-  blobA: { top: -80, left: -90, backgroundColor: '#D6E9FF' },
-  blobB: { bottom: -90, right: -90, backgroundColor: '#E9D6FF' },
-
-  scrollContent: { padding: 24, paddingTop: 32, paddingBottom: 32 },
-  pageMax: { width: '100%', maxWidth: 520, alignSelf: 'center' },
-
-  header: { alignItems: 'center', marginTop: 8, marginBottom: 18 },
-  logoRing: {
-    width: 82,
-    height: 82,
-    borderRadius: 82,
-    backgroundColor: '#EEF6FF',
+  scroll: {
+    padding: 22,
+    paddingTop: 28,
+    paddingBottom: 28,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  phoneCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: CARD,
+    borderRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 3,
+  },
+
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+
+  title: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: TEXT,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  subtitle: {
+    marginTop: 8,
+    marginBottom: 18,
+    fontSize: 13,
+    lineHeight: 18,
+    color: MUTED,
+    textAlign: 'center',
+  },
+
+  errorBox: {
+    backgroundColor: '#FFECEC',
+    borderWidth: 1,
+    borderColor: '#FFD1D1',
+    padding: 10,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+  errorText: { color: '#B42318', fontSize: 12, fontWeight: '700' },
+
+  inputPill: {
+    height: 52,
+    borderRadius: 999,
+    backgroundColor: '#F6F7F9',
+    borderWidth: 1,
+    borderColor: '#EEF1F4',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  leftIcon: { width: 26, alignItems: 'flex-start' },
+  rightIcon: { paddingLeft: 10, paddingVertical: 8 },
+  input: {
+    flex: 1,
+    fontSize: 14,
+    color: TEXT,
+    paddingVertical: 10,
+  },
+
+  rowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
     marginBottom: 14,
   },
-  logoInner: {
-    width: 62,
-    height: 62,
-    borderRadius: 62,
+
+  rememberRow: { flexDirection: 'row', alignItems: 'center' },
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#C9D2DC',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    marginRight: 8,
   },
-  title: { fontSize: 30, fontWeight: '800', color: '#0B1220', letterSpacing: -0.2 },
-  subtitle: { marginTop: 6, fontSize: 14, color: '#6B7280' },
+  checkboxOn: {
+    borderColor: GREEN,
+    backgroundColor: '#E8F7F0',
+  },
+  checkboxDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 2,
+    backgroundColor: GREEN,
+  },
+  rememberText: { fontSize: 12, color: TEXT, fontWeight: '700' },
+  forgotText: { fontSize: 12, color: TEXT, fontWeight: '800' },
 
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 18,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 2,
-  },
-
-  errorContainer: {
-    backgroundColor: '#FFE5E5',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#FFD0D0',
-  },
-  errorText: { color: '#B42318', fontSize: 13, fontWeight: '600' },
-
-  socialRow: { flexDirection: 'row' },
-  socialBtn: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  socialBtnFirst: { marginRight: 10 },
-  socialBtnPressed: { opacity: 0.92 },
-  socialBtnDisabled: { opacity: 0.6 },
-  socialText: { fontSize: 14, color: '#111827', fontWeight: '800', marginLeft: 8 },
-  googleBadge: {
-    width: 22,
-    height: 22,
+  primaryBtn: {
+    height: 52,
     borderRadius: 999,
-    backgroundColor: '#EEF2F7',
+    backgroundColor: GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 2,
+    marginTop: 2,
+  },
+  primaryBtnPressed: { opacity: 0.92 },
+  primaryBtnDisabled: { opacity: 0.6 },
+  primaryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  switchText: { fontSize: 12.5, color: MUTED, fontWeight: '700' },
+  switchLink: { fontSize: 12.5, color: GREEN, fontWeight: '900' },
+
+  dividerWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E6E9EE' },
+  dividerText: {
+    marginHorizontal: 10,
+    fontSize: 11.5,
+    color: MUTED,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+
+  socialRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 6 },
+  socialBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  googleBadgeText: { fontSize: 12, fontWeight: '900', color: '#111827' },
-
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 12 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { marginHorizontal: 10, fontSize: 12, color: '#9CA3AF', fontWeight: '800' },
-
-  fieldWrap: { marginBottom: 14 },
-  fieldGlow: { ...StyleSheet.absoluteFillObject, borderRadius: 14, backgroundColor: 'rgba(10,132,255,0.10)' },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    minHeight: 54,
-  },
-  fieldIcon: { width: 28, alignItems: 'flex-start' },
-  input: { flex: 1, paddingVertical: 14, fontSize: 16, color: '#0B1220' },
-  trailingIcon: { paddingLeft: 8, paddingVertical: 10 },
-
-  metaRow: { marginTop: 8, paddingHorizontal: 2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  metaHint: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
-  metaLink: { fontSize: 12, color: '#0A84FF', fontWeight: '900' },
-
-  button: {
-    backgroundColor: '#0A84FF',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-  },
-  buttonPressed: { opacity: 0.92 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '900', letterSpacing: 0.2 },
-
-  ghostBtn: { marginTop: 10, alignItems: 'center', paddingVertical: 10 },
-  ghostText: { fontSize: 13, fontWeight: '900', color: '#111827', opacity: 0.75 },
-
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, paddingBottom: 2 },
-  footerText: { fontSize: 14, color: '#6B7280' },
-  link: { fontSize: 14, color: '#0A84FF', fontWeight: '900' },
+  socialBtnFirst: { marginRight: 14 },
+  socialBtnLast: { marginLeft: 14 },
+  socialLetter: { fontSize: 16, fontWeight: '900', color: TEXT },
 });
