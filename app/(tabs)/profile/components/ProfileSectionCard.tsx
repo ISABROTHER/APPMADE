@@ -25,7 +25,6 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 
-  // iOS Settings section header style
   title: {
     fontSize: 13,
     fontWeight: '400',
