@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  Platform,
 } from 'react-native';
 import { 
   ArrowUpRight, 
@@ -13,47 +13,65 @@ import {
   Plus, 
   Wallet, 
   CreditCard, 
-  Bell 
+  Bell,
+  Search
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
 
 const GREEN = '#34B67A';
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Top Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.userName}>User</Text>
+          <Text style={styles.greeting}>Good Morning,</Text>
+          <Text style={styles.userName}>{user?.email?.split('@')[0] || 'User'}</Text>
         </View>
-        <TouchableOpacity style={styles.notificationBtn}>
-          <Bell size={24} color="#000" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.iconBtn}>
+            <Search size={22} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn}>
+            <Bell size={22} color="#000" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Balance Card */}
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Main Balance Card */}
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Total Balance</Text>
-            <Wallet size={20} color="rgba(255,255,255,0.8)" />
+            <View style={styles.balanceInfo}>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <Text style={styles.balanceAmount}>$24,562.00</Text>
+            </View>
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>+2.5%</Text>
+            </View>
           </View>
-          <Text style={styles.balanceAmount}>$12,450.00</Text>
-          <View style={styles.balanceFooter}>
-            <View style={styles.stat}>
-              <ArrowDownLeft size={16} color="#fff" />
-              <Text style={styles.statText}>Income: $3,200</Text>
+          
+          <View style={styles.cardFooter}>
+            <View style={styles.cardDetail}>
+              <Text style={styles.detailLabel}>Card Holder</Text>
+              <Text style={styles.detailValue}>{user?.email?.split('@')[0]?.toUpperCase() || 'USER'}</Text>
             </View>
-            <View style={styles.stat}>
-              <ArrowUpRight size={16} color="#fff" />
-              <Text style={styles.statText}>Spent: $1,150</Text>
+            <View style={styles.cardDetail}>
+              <Text style={styles.detailLabel}>Expiry</Text>
+              <Text style={styles.detailValue}>12/26</Text>
             </View>
+            <Wallet size={24} color="rgba(255,255,255,0.6)" />
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        {/* Quick Action Buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.actionItem}>
             <View style={[styles.actionIcon, { backgroundColor: 'rgba(52,182,122,0.1)' }]}>
@@ -61,40 +79,48 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.actionLabel}>Add</Text>
           </TouchableOpacity>
+          
           <TouchableOpacity style={styles.actionItem}>
             <View style={[styles.actionIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
-              <CreditCard size={24} color="#007AFF" />
+              <ArrowUpRight size={24} color="#007AFF" />
+            </View>
+            <Text style={styles.actionLabel}>Pay</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionItem}>
+            <View style={[styles.actionIcon, { backgroundColor: 'rgba(175,82,222,0.1)' }]}>
+              <CreditCard size={24} color="#AF52DE" />
             </View>
             <Text style={styles.actionLabel}>Cards</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Recent Activity */}
+        {/* Recent Transactions Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           <TouchableOpacity>
-            <Text style={styles.seeAll}>See All</Text>
+            <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.activityList}>
-          <ActivityItem 
-            title="Grocery Store" 
-            subtitle="Today, 2:45 PM" 
-            amount="-$64.20" 
-            type="expense" 
+        <View style={styles.transactionsList}>
+          <TransactionItem 
+            name="Apple Store" 
+            category="Electronics" 
+            price="-$999.00" 
+            isIncome={false}
           />
-          <ActivityItem 
-            title="Salary Deposit" 
-            subtitle="Yesterday" 
-            amount="+$3,200.00" 
-            type="income" 
+          <TransactionItem 
+            name="Stripe Payout" 
+            category="Business" 
+            price="+$4,250.00" 
+            isIncome={true}
           />
-          <ActivityItem 
-            title="Netflix Subscription" 
-            subtitle="Dec 15, 2023" 
-            amount="-$15.99" 
-            type="expense" 
+          <TransactionItem 
+            name="Starbucks" 
+            category="Food & Drink" 
+            price="-$12.50" 
+            isIncome={false}
           />
         </View>
       </ScrollView>
@@ -102,21 +128,24 @@ export default function HomeScreen() {
   );
 }
 
-function ActivityItem({ title, subtitle, amount, type }: any) {
+function TransactionItem({ name, category, price, isIncome }: any) {
   return (
-    <View style={styles.activityItem}>
-      <View style={styles.activityLeft}>
-        <View style={styles.activityDot} />
+    <View style={styles.transactionItem}>
+      <View style={styles.transactionLeft}>
+        <View style={styles.transactionIconBg}>
+          {isIncome ? (
+            <ArrowDownLeft size={20} color={GREEN} />
+          ) : (
+            <ArrowUpRight size={20} color="#FF3B30" />
+          )}
+        </View>
         <View>
-          <Text style={styles.activityTitle}>{title}</Text>
-          <Text style={styles.activitySubtitle}>{subtitle}</Text>
+          <Text style={styles.transactionName}>{name}</Text>
+          <Text style={styles.transactionCategory}>{category}</Text>
         </View>
       </View>
-      <Text style={[
-        styles.activityAmount, 
-        { color: type === 'income' ? GREEN : '#FF3B30' }
-      ]}>
-        {amount}
+      <Text style={[styles.transactionPrice, { color: isIncome ? GREEN : '#000' }]}>
+        {price}
       </Text>
     </View>
   );
@@ -125,7 +154,7 @@ function ActivityItem({ title, subtitle, amount, type }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -133,147 +162,175 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#FFFFFF',
   },
   greeting: {
     fontSize: 14,
     color: '#8E8E93',
+    fontWeight: '500',
   },
   userName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#000',
   },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  headerActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 100,
   },
   balanceCard: {
     backgroundColor: GREEN,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
-    marginBottom: 30,
+    height: 200,
+    justifyContent: 'space-between',
     shadowColor: GREEN,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
+    marginBottom: 30,
   },
   balanceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+  },
+  balanceInfo: {
+    gap: 4,
   },
   balanceLabel: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    fontWeight: '600',
   },
   balanceAmount: {
     color: '#FFFFFF',
     fontSize: 32,
     fontWeight: '800',
-    marginBottom: 20,
   },
-  balanceFooter: {
-    flexDirection: 'row',
-    gap: 20,
+  chip: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
+  chipText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 24,
+  },
+  cardDetail: {
+    gap: 2,
+  },
+  detailLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailValue: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 15,
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 35,
+  },
+  actionItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  actionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1C1C1E',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 15,
+    marginBottom: 20,
   },
-  seeAll: {
-    color: GREEN,
-    fontWeight: '600',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 30,
-  },
-  actionItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    flex: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  actionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  actionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#000',
   },
-  activityList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 10,
+  seeAllText: {
+    color: GREEN,
+    fontWeight: '600',
+    fontSize: 14,
   },
-  activityItem: {
+  transactionsList: {
+    gap: 16,
+  },
+  transactionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    padding: 4,
   },
-  activityLeft: {
+  transactionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 15,
   },
-  activityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E5E5EA',
+  transactionIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  activityTitle: {
-    fontSize: 15,
+  transactionName: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#000',
   },
-  activitySubtitle: {
-    fontSize: 12,
+  transactionCategory: {
+    fontSize: 13,
     color: '#8E8E93',
   },
-  activityAmount: {
-    fontSize: 15,
+  transactionPrice: {
+    fontSize: 16,
     fontWeight: '700',
   },
 });
