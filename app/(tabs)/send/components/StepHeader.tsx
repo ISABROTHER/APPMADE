@@ -9,28 +9,35 @@ type StepHeaderProps = {
 export const StepHeader = ({ title, subtitle }: StepHeaderProps) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      <Text style={styles.title} numberOfLines={2}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text style={styles.subtitle} numberOfLines={3}>
+          {subtitle}
+        </Text>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
   },
+  // Apple-like hierarchy
   title: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#0B1220',
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#111827',
     letterSpacing: -0.2,
   },
   subtitle: {
     marginTop: 6,
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '400',
     color: '#6B7280',
     lineHeight: 20,
   },
