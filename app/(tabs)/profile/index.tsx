@@ -1,28 +1,34 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import {
+  Bell,
+  CreditCard,
+  Globe,
+  KeyRound,
+  LogOut,
   MapPin,
   Package,
   Receipt,
-  CreditCard,
-  Bell,
-  Globe,
   ShieldCheck,
-  KeyRound,
   Trash2,
-  LogOut,
+  User,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ProfileSectionCard } from './components/ProfileSectionCard';
 import { ProfileRow } from './components/ProfileRow';
-import { UserDetailsCard } from './components/UserDetailsCard';
 
 const BG = '#F2F2F7'; // iOS grouped background
 const TEXT = '#111827';
 const MUTED = '#6B7280';
+
+const WHITE = '#FFFFFF';
+const BORDER = 'rgba(60,60,67,0.18)';
+
+const GREEN_BG = 'rgba(52, 182, 122, 0.14)';
+const GREEN_TEXT = '#1F7A4E';
 
 export default function ProfileHomeScreen() {
   const { user, signOut } = useAuth();
@@ -59,23 +65,48 @@ export default function ProfileHomeScreen() {
     }
   };
 
+  const fullName = userProfile?.full_name || 'Your account';
+  const email = user?.email || '';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-      </View>
+      {/* Minimal top spacer (no big "Profile" title) */}
+      <View style={styles.topSpacer} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <UserDetailsCard
-          fullName={userProfile?.full_name}
-          email={user?.email}
-          phone={userProfile?.phone}
-          address={userProfile?.address}
-        />
+        {/* HERO HEADER */}
+        <Pressable
+          onPress={() => router.push('/(tabs)/profile/edit-profile')}
+          style={({ pressed }) => [styles.heroCard, pressed ? styles.heroPressed : null]}
+        >
+          <View style={styles.heroAccent} />
+
+          <View style={styles.heroRow}>
+            <View style={styles.avatarWrap}>
+              <User size={22} color={GREEN_TEXT} strokeWidth={2} />
+            </View>
+
+            <View style={styles.heroTextCol}>
+              <Text style={styles.heroName} numberOfLines={1}>
+                {fullName}
+              </Text>
+
+              {email ? (
+                <Text style={styles.heroEmail} numberOfLines={1}>
+                  {email}
+                </Text>
+              ) : null}
+
+              <View style={styles.heroPill}>
+                <Text style={styles.heroPillText}>Edit profile</Text>
+              </View>
+            </View>
+          </View>
+        </Pressable>
 
         <ProfileSectionCard title="Pickup preferences">
           <ProfileRow
@@ -165,19 +196,9 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
 
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 10,
+  topSpacer: {
+    height: 6,
     backgroundColor: BG,
-  },
-
-  // iOS Large Title feel
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: TEXT,
-    letterSpacing: -0.4,
   },
 
   scrollView: {
@@ -186,14 +207,76 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
+  },
+
+  // HERO
+  heroCard: {
+    backgroundColor: WHITE,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
+  heroPressed: {
+    opacity: 0.92,
+  },
+  heroAccent: {
+    height: 54,
+    backgroundColor: GREEN_BG,
+  },
+  heroRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    marginTop: -18,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  heroTextCol: {
+    flex: 1,
+  },
+  // Apple-like typography
+  heroName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: TEXT,
+    marginBottom: 2,
+  },
+  heroEmail: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: MUTED,
+    marginBottom: 10,
+  },
+  heroPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: GREEN_BG,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  heroPillText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: GREEN_TEXT,
   },
 
   supportSection: {
-    marginTop: 8,
+    marginTop: 6,
     paddingHorizontal: 4,
   },
-
   supportTitle: {
     fontSize: 13,
     fontWeight: '400',
@@ -201,7 +284,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 12,
   },
-
   supportText: {
     fontSize: 15,
     fontWeight: '400',
