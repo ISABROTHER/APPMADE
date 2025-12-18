@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useRef } from 'react';
+import { Animated, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
 
 type ContinueButtonProps = {
   onPress: () => void;
@@ -14,53 +14,70 @@ export const ContinueButton = ({
   loading = false,
   label = 'Continue',
 }: ContinueButtonProps) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    if (disabled || loading) return;
+    Animated.timing(scale, { toValue: 0.985, duration: 90, useNativeDriver: true }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.timing(scale, { toValue: 1, duration: 140, useNativeDriver: true }).start();
+  };
+
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.button,
-        (disabled || loading) && styles.buttonDisabled,
-        pressed && !disabled && styles.buttonPressed,
-      ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-    >
-      {loading ? (
-        <ActivityIndicator color="#FFFFFF" />
-      ) : (
-        <Text style={styles.buttonText}>{label}</Text>
-      )}
-    </Pressable>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          (disabled || loading) && styles.buttonDisabled,
+          pressed && !disabled && !loading ? styles.buttonPressed : null,
+        ]}
+        onPress={onPress}
+        disabled={disabled || loading}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.buttonText}>{label}</Text>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
     backgroundColor: '#34B67A',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 18,
-    marginBottom: 16,
-    shadowColor: '#34B67A',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    minHeight: 54,
+
+    // iOS-like subtle lift
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.10,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
   },
   buttonDisabled: {
-    backgroundColor: 'rgba(107,114,128,0.3)',
+    backgroundColor: 'rgba(142,142,147,0.35)',
     shadowOpacity: 0,
+    elevation: 0,
   },
   buttonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.96,
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 17,
+    fontWeight: '600',
     color: '#FFFFFF',
-    letterSpacing: 0.2,
   },
 });
