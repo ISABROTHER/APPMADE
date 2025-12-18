@@ -267,10 +267,7 @@ function RowLink({
 }
 
 export default function ProfileIndexScreen() {
-  const { user, signOut } = useAuth();
-
-  const avatarUrl =
-    (user?.user_metadata as Record<string, unknown> | undefined)?.avatar_url as string | undefined;
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -294,7 +291,7 @@ export default function ProfileIndexScreen() {
       </View>
 
       <View style={styles.content}>
-        <DigitalCard email={user?.email ?? null} userId={user?.id ?? null} avatarUrl={avatarUrl ?? null} />
+        <DigitalCard email={null} userId={null} avatarUrl={null} />
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>More</Text>
