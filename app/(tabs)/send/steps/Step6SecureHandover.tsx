@@ -91,39 +91,44 @@ export const Step6SecureHandover = ({ onComplete }: Step6SecureHandoverProps) =>
     setSaving(true);
 
     try {
-      const { data, error } = await supabase.from('shipments').insert({
-        sender_id: user.id,
-        sender_name: sender?.name || '',
-        sender_phone: sender?.phone || '',
-        recipient_phone: recipient?.phone || '',
-        recipient_name: recipient?.name || '',
-        parcel_size: parcel?.size || 'small',
-        weight_range: parcel?.weightRange || '0-1kg',
-        category: parcel?.category,
-        origin_region: route?.origin.region || '',
-        origin_city_town: route?.origin.cityTown || '',
-        origin_landmark: route?.origin.landmark,
-        destination_region: route?.destination.region || '',
-        destination_city_town: route?.destination.cityTown || '',
-        destination_landmark: route?.destination.landmark,
-        handover_method: handover?.method || 'DROPOFF',
-        pickup_details: handover?.pickupDetails
-          ? JSON.stringify(handover.pickupDetails)
-          : null,
-        selected_at_handover_agent_id: selectedAgent.id,
-        shipment_code: shipmentCode,
-        sender_handover_pin: senderPin,
-        tracking_id: trackingId,
-        base_price: basePrice,
-        pickup_fee: pickupFee,
-        total_price: totalPrice,
-        status: 'PAID_AWAITING_HANDOVER',
-      });
+      const { data, error } = await supabase
+        .from('shipments')
+        .insert({
+          sender_id: user.id,
+          sender_name: sender?.name || '',
+          sender_phone: sender?.phone || '',
+          recipient_phone: recipient?.phone || '',
+          recipient_name: recipient?.name || '',
+          parcel_size: parcel?.size || 'small',
+          weight_range: parcel?.weightRange || '0-1kg',
+          category: parcel?.category,
+          origin_region: route?.origin.region || '',
+          origin_city_town: route?.origin.cityTown || '',
+          origin_landmark: route?.origin.landmark,
+          destination_region: route?.destination.region || '',
+          destination_city_town: route?.destination.cityTown || '',
+          destination_landmark: route?.destination.landmark,
+          handover_method: handover?.method || 'DROPOFF',
+          pickup_details: handover?.pickupDetails
+            ? JSON.stringify(handover.pickupDetails)
+            : null,
+          selected_at_handover_agent_id: selectedAgent.id,
+          shipment_code: shipmentCode,
+          sender_handover_pin: senderPin,
+          tracking_id: trackingId,
+          base_price: basePrice,
+          pickup_fee: pickupFee,
+          total_price: totalPrice,
+          status: 'PAID_AWAITING_HANDOVER',
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      if (!data) throw new Error('No data returned from insert');
 
       await supabase.from('shipment_events').insert({
-        shipment_id: data[0].id,
+        shipment_id: data.id,
         event_type: 'CREATED',
         description: 'Shipment created and paid',
         actor_type: 'sender',
