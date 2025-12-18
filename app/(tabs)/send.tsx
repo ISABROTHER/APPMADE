@@ -17,12 +17,11 @@ const SendParcelFlow = () => {
   const { reset } = useSendParcel();
 
   const handleNext = () => {
-    if (currentStep < TOTAL_STEPS) {
-      setCurrentStep(currentStep + 1);
-    }
+    if (currentStep < TOTAL_STEPS) setCurrentStep(currentStep + 1);
   };
 
   const handleComplete = () => {
+    reset();
     setCurrentStep(1);
   };
 
@@ -64,7 +63,7 @@ export default function SendScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: '#F2F2F7', // iOS grouped background
   },
   stepContainer: {
     flex: 1,
