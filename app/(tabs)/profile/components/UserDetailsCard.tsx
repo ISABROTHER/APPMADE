@@ -3,15 +3,15 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ChevronRight, User } from 'lucide-react-native';
 import { router } from 'expo-router';
 
-const TEXT = '#0B1220';
+const TEXT = '#111827';
 const MUTED = '#6B7280';
 
 // Card
 const CARD_BG = '#FFFFFF';
-const CARD_BORDER = 'rgba(0,0,0,0.06)';
+const CARD_BORDER = 'rgba(0,0,0,0.08)';
 
-// “Text box” (light green badge)
-const INFO_BG = 'rgba(52, 182, 122, 0.14)';
+// Light green info box (Apple-soft)
+const INFO_BG = 'rgba(52, 182, 122, 0.15)';
 const INFO_TEXT = '#1F7A4E';
 
 interface UserDetailsCardProps {
@@ -22,17 +22,17 @@ interface UserDetailsCardProps {
 }
 
 export function UserDetailsCard({ fullName }: UserDetailsCardProps) {
-  const displayName = fullName || 'Add your name';
+  const displayName = fullName || 'Your name';
 
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => router.push('/(tabs)/profile/edit-profile')}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
       <View style={styles.row}>
         <View style={styles.iconWrap}>
-          <User size={22} color={INFO_TEXT} strokeWidth={2.5} />
+          <User size={22} color={INFO_TEXT} strokeWidth={2} />
         </View>
 
         <View style={styles.textCol}>
@@ -40,12 +40,12 @@ export function UserDetailsCard({ fullName }: UserDetailsCardProps) {
             {displayName}
           </Text>
 
-          <View style={styles.infoPill}>
+          <View style={styles.infoBox}>
             <Text style={styles.infoText}>Your information</Text>
           </View>
         </View>
 
-        <ChevronRight size={20} color={MUTED} strokeWidth={2.5} />
+        <ChevronRight size={18} color={MUTED} strokeWidth={2} />
       </View>
     </TouchableOpacity>
   );
@@ -54,59 +54,54 @@ export function UserDetailsCard({ fullName }: UserDetailsCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: CARD_BG,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: CARD_BORDER,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 20,
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
   },
 
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
 
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: INFO_BG,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    marginRight: 12,
   },
 
   textCol: {
     flex: 1,
-    justifyContent: 'center',
   },
 
+  // Apple-style primary text (Title 3 feel)
   nameText: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '600',
     color: TEXT,
-    letterSpacing: -0.2,
     marginBottom: 6,
   },
 
-  infoPill: {
+  // Apple-style secondary container
+  infoBox: {
     alignSelf: 'flex-start',
     backgroundColor: INFO_BG,
-    borderRadius: 999,
+    borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
 
+  // Apple-style footnote text
   infoText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: INFO_TEXT,
   },
 });
