@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { CheckSquare, User } from 'lucide-react-native';
+import { Home, Send, User } from 'lucide-react-native';
 
 const GREEN = '#34B67A';
 const INACTIVE = '#8E8E93';
@@ -70,7 +70,6 @@ function ModernTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={typeof label === 'string' ? label : route.name}
             >
-              {/* Active highlight capsule behind icon (matches screenshot format) */}
               <View style={[styles.iconCapsule, focused ? styles.iconCapsuleActive : styles.iconCapsuleIdle]}>
                 {icon}
               </View>
@@ -99,8 +98,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tasks',
-          tabBarIcon: ({ size, color }) => <CheckSquare size={size} color={color} />,
+          title: 'Home',
+          tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="send"
+        options={{
+          title: 'Send',
+          tabBarIcon: ({ size, color }) => <Send size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -119,31 +125,26 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: 'transparent',
     borderTopWidth: 0,
-    height: 78, // matches the screenshot “tall enough but not bulky”
+    height: 78,
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 14 : 12,
   },
-
   tabBarSurface: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: BAR_BG,
     borderTopWidth: 1,
     borderTopColor: BAR_BORDER,
-
-    // subtle lift like modern apps
     shadowColor: '#0B1220',
     shadowOpacity: 0.06,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: -10 },
     elevation: 10,
   },
-
   row: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   item: {
     flex: 1,
     alignItems: 'center',
@@ -152,8 +153,6 @@ const styles = StyleSheet.create({
   itemPressed: {
     opacity: 0.92,
   },
-
-  // Icon capsule sizing is the key to screenshot-like spacing
   iconCapsule: {
     width: 46,
     height: 32,
@@ -172,7 +171,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-
   label: {
     fontSize: 11.5,
     fontWeight: '800',
