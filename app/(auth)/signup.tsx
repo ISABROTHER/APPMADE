@@ -14,11 +14,15 @@ import {
   View,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { CheckSquare, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
+import { CheckSquare, Eye, EyeOff, Lock, Mail, Apple } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+
+type SignUpStep = 0 | 1;
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
+
+  const [step, setStep] = useState<SignUpStep>(0);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +49,9 @@ export default function SignUpScreen() {
 
   // Button press micro-interaction
   const buttonScale = useRef(new Animated.Value(1)).current;
+
+  // Error shake
+  const shakeX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -126,9 +133,23 @@ export default function SignUpScreen() {
   }, [password, passwordScore]);
 
   const strengthWidth = useMemo(() => {
-    // 0..5 -> 0..100
     return `${Math.round((passwordScore / 5) * 100)}%`;
   }, [passwordScore]);
+
+  const canContinue = useMemo(() => {
+    if (loading) return false;
+    return email.trim().length > 0;
+  }, [email, loading]);
+
+  const canCreateAccount = useMemo(() => {
+    if (loading) return false;
+    if (!email.trim()) return false;
+    if (!password) return false;
+    if (!confirmPassword) return false;
+    if (password.length < 6) return false;
+    if (password !== confirmPassword) return false;
+    return true;
+  }, [confirmPassword, email, loading, password]);
 
   const animateFocus = (v: Animated.Value, to: number) => {
     Animated.timing(v, {
@@ -139,19 +160,49 @@ export default function SignUpScreen() {
     }).start();
   };
 
+  const shake = () => {
+    shakeX.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeX, { toValue: 1, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: -1, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 1, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: -1, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const setAndShakeError = (msg: string) => {
+    setError(msg);
+    shake();
+  };
+
+  const handleContinue = () => {
+    if (!email.trim()) {
+      setAndShakeError('Please enter your email');
+      return;
+    }
+    setError(null);
+    setStep(1);
+  };
+
+  const handleBack = () => {
+    setError(null);
+    setStep(0);
+  };
+
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword) {
-      setError('Please fill in all fields');
+      setAndShakeError('Please fill in all fields');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setAndShakeError('Passwords do not match');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setAndShakeError('Password must be at least 6 characters');
       return;
     }
 
@@ -161,11 +212,24 @@ export default function SignUpScreen() {
     const { error: signUpError } = await signUp(email, password);
 
     if (signUpError) {
-      setError(signUpError.message);
+      setAndShakeError(signUpError.message);
       setLoading(false);
       return;
     }
 
+    router.replace('/(tabs)');
+  };
+
+  // UI-only placeholders (no new deps / provider wiring here)
+  const handleSocialSignUp = (provider: 'apple' | 'google') => {
+    setAndShakeError(
+      provider === 'apple'
+        ? 'Apple sign-up is not connected yet. Tell me your auth provider (e.g., Supabase/Firebase) and I will wire it.'
+        : 'Google sign-up is not connected yet. Tell me your auth provider (e.g., Supabase/Firebase) and I will wire it.'
+    );
+  };
+
+  const handleGuest = () => {
     router.replace('/(tabs)');
   };
 
@@ -244,6 +308,12 @@ export default function SignUpScreen() {
           outputRange: [16, 0],
         }),
       },
+      {
+        translateX: shakeX.interpolate({
+          inputRange: [-1, 0, 1],
+          outputRange: [-7, 0, 7],
+        }),
+      },
     ],
   } as const;
 
@@ -287,18 +357,13 @@ export default function SignUpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Animated background */}
       <View pointerEvents="none" style={styles.bg}>
         <Animated.View style={[styles.blob, styles.blobA, blobATransform]} />
         <Animated.View style={[styles.blob, styles.blobB, blobBTransform]} />
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
           <Animated.View style={[styles.header, headerStyle]}>
             <View style={styles.logoRing}>
               <View style={styles.logoInner}>
@@ -307,7 +372,14 @@ export default function SignUpScreen() {
             </View>
 
             <Text style={styles.title}>Create account</Text>
-            <Text style={styles.subtitle}>Join in under a minute</Text>
+            <Text style={styles.subtitle}>Fast signup, clean flow</Text>
+
+            {/* Progress (2-step) */}
+            <View style={styles.progressRow}>
+              <View style={[styles.dot, step === 0 ? styles.dotActive : styles.dotInactive]} />
+              <View style={[styles.dot, step === 1 ? styles.dotActive : styles.dotInactive]} />
+              <Text style={styles.progressText}>{step === 0 ? 'Step 1 of 2' : 'Step 2 of 2'}</Text>
+            </View>
           </Animated.View>
 
           <Animated.View style={[styles.card, formStyle]}>
@@ -317,124 +389,206 @@ export default function SignUpScreen() {
               </View>
             )}
 
-            {/* Email */}
-            <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(emailFocus)]}>
-              <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(emailFocus)]} />
-              <View style={styles.field}>
-                <View style={styles.fieldIcon}>
-                  <Mail size={18} color="#6B7280" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email address"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholderTextColor="#9CA3AF"
-                  onFocus={() => animateFocus(emailFocus, 1)}
-                  onBlur={() => animateFocus(emailFocus, 0)}
-                  editable={!loading}
-                  returnKeyType="next"
-                />
-              </View>
-            </Animated.View>
-
-            {/* Password */}
-            <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(passFocus)]}>
-              <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(passFocus)]} />
-              <View style={styles.field}>
-                <View style={styles.fieldIcon}>
-                  <Lock size={18} color="#6B7280" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  placeholderTextColor="#9CA3AF"
-                  onFocus={() => animateFocus(passFocus, 1)}
-                  onBlur={() => animateFocus(passFocus, 0)}
-                  editable={!loading}
-                  returnKeyType="next"
-                />
-                <Pressable
-                  onPress={() => setShowPassword((s) => !s)}
-                  style={styles.trailingIcon}
-                  hitSlop={10}>
-                  {showPassword ? (
-                    <EyeOff size={18} color="#6B7280" />
-                  ) : (
-                    <Eye size={18} color="#6B7280" />
-                  )}
-                </Pressable>
-              </View>
-
-              <View style={styles.strengthRow}>
-                <View style={styles.strengthTrack}>
-                  <View style={[styles.strengthFill, { width: strengthWidth }]} />
-                </View>
-                <Text style={styles.strengthText}>{strengthLabel}</Text>
-              </View>
-            </Animated.View>
-
-            {/* Confirm Password */}
-            <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(confirmFocus)]}>
-              <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(confirmFocus)]} />
-              <View style={styles.field}>
-                <View style={styles.fieldIcon}>
-                  <Lock size={18} color="#6B7280" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                  placeholderTextColor="#9CA3AF"
-                  onFocus={() => animateFocus(confirmFocus, 1)}
-                  onBlur={() => animateFocus(confirmFocus, 0)}
-                  editable={!loading}
-                  returnKeyType="done"
-                  onSubmitEditing={() => {
-                    if (!loading) void handleSignUp();
-                  }}
-                />
-                <Pressable
-                  onPress={() => setShowConfirmPassword((s) => !s)}
-                  style={styles.trailingIcon}
-                  hitSlop={10}>
-                  {showConfirmPassword ? (
-                    <EyeOff size={18} color="#6B7280" />
-                  ) : (
-                    <Eye size={18} color="#6B7280" />
-                  )}
-                </Pressable>
-              </View>
-            </Animated.View>
-
-            {/* CTA */}
-            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+            {/* Social sign up */}
+            <View style={styles.socialRow}>
               <Pressable
-                onPress={handleSignUp}
+                onPress={() => handleSocialSignUp('apple')}
                 disabled={loading}
-                onPressIn={onPressInButton}
-                onPressOut={onPressOutButton}
                 style={({ pressed }) => [
-                  styles.button,
-                  pressed && !loading ? styles.buttonPressed : null,
-                  loading ? styles.buttonDisabled : null,
+                  styles.socialBtn,
+                  pressed && !loading ? styles.socialBtnPressed : null,
+                  loading ? styles.socialBtnDisabled : null,
                 ]}>
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.buttonText}>Create account</Text>
-                )}
+                <Apple size={18} color="#111827" />
+                <Text style={styles.socialText}>Apple</Text>
               </Pressable>
-            </Animated.View>
 
-            {/* Footer */}
+              <Pressable
+                onPress={() => handleSocialSignUp('google')}
+                disabled={loading}
+                style={({ pressed }) => [
+                  styles.socialBtn,
+                  pressed && !loading ? styles.socialBtnPressed : null,
+                  loading ? styles.socialBtnDisabled : null,
+                ]}>
+                <View style={styles.googleBadge}>
+                  <Text style={styles.googleBadgeText}>G</Text>
+                </View>
+                <Text style={styles.socialText}>Google</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Step 1: email */}
+            {step === 0 && (
+              <>
+                <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(emailFocus)]}>
+                  <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(emailFocus)]} />
+                  <View style={styles.field}>
+                    <View style={styles.fieldIcon}>
+                      <Mail size={18} color="#6B7280" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email address"
+                      value={email}
+                      onChangeText={(t) => {
+                        setEmail(t);
+                        if (error) setError(null);
+                      }}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      placeholderTextColor="#9CA3AF"
+                      onFocus={() => animateFocus(emailFocus, 1)}
+                      onBlur={() => animateFocus(emailFocus, 0)}
+                      editable={!loading}
+                      returnKeyType="done"
+                      onSubmitEditing={() => {
+                        if (!loading) handleContinue();
+                      }}
+                    />
+                  </View>
+                  <Text style={styles.helperText}>We will never share your email.</Text>
+                </Animated.View>
+
+                <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+                  <Pressable
+                    onPress={handleContinue}
+                    disabled={!canContinue}
+                    onPressIn={onPressInButton}
+                    onPressOut={onPressOutButton}
+                    style={({ pressed }) => [
+                      styles.button,
+                      pressed && canContinue ? styles.buttonPressed : null,
+                      !canContinue ? styles.buttonDisabled : null,
+                    ]}>
+                    <Text style={styles.buttonText}>Continue</Text>
+                  </Pressable>
+                </Animated.View>
+
+                <Pressable onPress={handleGuest} style={styles.ghostBtn} hitSlop={8}>
+                  <Text style={styles.ghostText}>Continue as guest</Text>
+                </Pressable>
+              </>
+            )}
+
+            {/* Step 2: passwords */}
+            {step === 1 && (
+              <>
+                <View style={styles.stepHeaderRow}>
+                  <Pressable onPress={handleBack} disabled={loading} hitSlop={10}>
+                    <Text style={styles.backText}>Back</Text>
+                  </Pressable>
+                  <Text style={styles.stepHint}>Set a password</Text>
+                  <View style={{ width: 44 }} />
+                </View>
+
+                <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(passFocus)]}>
+                  <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(passFocus)]} />
+                  <View style={styles.field}>
+                    <View style={styles.fieldIcon}>
+                      <Lock size={18} color="#6B7280" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Password"
+                      value={password}
+                      onChangeText={(t) => {
+                        setPassword(t);
+                        if (error) setError(null);
+                      }}
+                      secureTextEntry={!showPassword}
+                      placeholderTextColor="#9CA3AF"
+                      onFocus={() => animateFocus(passFocus, 1)}
+                      onBlur={() => animateFocus(passFocus, 0)}
+                      editable={!loading}
+                      returnKeyType="next"
+                    />
+                    <Pressable
+                      onPress={() => setShowPassword((s) => !s)}
+                      style={styles.trailingIcon}
+                      hitSlop={10}>
+                      {showPassword ? <EyeOff size={18} color="#6B7280" /> : <Eye size={18} color="#6B7280" />}
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.strengthRow}>
+                    <View style={styles.strengthTrack}>
+                      <View style={[styles.strengthFill, { width: strengthWidth }]} />
+                    </View>
+                    <Text style={styles.strengthText}>{strengthLabel}</Text>
+                  </View>
+                </Animated.View>
+
+                <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(confirmFocus)]}>
+                  <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(confirmFocus)]} />
+                  <View style={styles.field}>
+                    <View style={styles.fieldIcon}>
+                      <Lock size={18} color="#6B7280" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Confirm password"
+                      value={confirmPassword}
+                      onChangeText={(t) => {
+                        setConfirmPassword(t);
+                        if (error) setError(null);
+                      }}
+                      secureTextEntry={!showConfirmPassword}
+                      placeholderTextColor="#9CA3AF"
+                      onFocus={() => animateFocus(confirmFocus, 1)}
+                      onBlur={() => animateFocus(confirmFocus, 0)}
+                      editable={!loading}
+                      returnKeyType="done"
+                      onSubmitEditing={() => {
+                        if (!loading) void handleSignUp();
+                      }}
+                    />
+                    <Pressable
+                      onPress={() => setShowConfirmPassword((s) => !s)}
+                      style={styles.trailingIcon}
+                      hitSlop={10}>
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} color="#6B7280" />
+                      ) : (
+                        <Eye size={18} color="#6B7280" />
+                      )}
+                    </Pressable>
+                  </View>
+
+                  {confirmPassword.length > 0 && (
+                    <Text style={[styles.matchText, password === confirmPassword ? styles.matchOk : styles.matchBad]}>
+                      {password === confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                    </Text>
+                  )}
+                </Animated.View>
+
+                <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+                  <Pressable
+                    onPress={handleSignUp}
+                    disabled={!canCreateAccount}
+                    onPressIn={onPressInButton}
+                    onPressOut={onPressOutButton}
+                    style={({ pressed }) => [
+                      styles.button,
+                      pressed && canCreateAccount ? styles.buttonPressed : null,
+                      !canCreateAccount ? styles.buttonDisabled : null,
+                    ]}>
+                    {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Create account</Text>}
+                  </Pressable>
+                </Animated.View>
+
+                <Pressable onPress={handleGuest} style={styles.ghostBtn} hitSlop={8}>
+                  <Text style={styles.ghostText}>Continue as guest</Text>
+                </Pressable>
+              </>
+            )}
+
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
               <Link href="/(auth)/login" asChild>
@@ -459,7 +613,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
 
-  // Background
   bg: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#F9FAFB',
@@ -490,7 +643,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginTop: 8,
-    marginBottom: 18,
+    marginBottom: 14,
   },
   logoRing: {
     width: 82,
@@ -523,7 +676,30 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
 
-  // Card
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  dotActive: {
+    backgroundColor: '#0A84FF',
+  },
+  dotInactive: {
+    backgroundColor: '#D1D5DB',
+  },
+  progressText: {
+    marginLeft: 4,
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+  },
+
   card: {
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderWidth: 1,
@@ -551,7 +727,65 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Fields
+  socialRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  socialBtn: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  socialBtnPressed: {
+    opacity: 0.92,
+  },
+  socialBtnDisabled: {
+    opacity: 0.6,
+  },
+  socialText: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '800',
+  },
+  googleBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: '#EEF2F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleBadgeText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#111827',
+  },
+
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '800',
+  },
+
   fieldWrap: {
     marginBottom: 14,
   },
@@ -585,6 +819,33 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
 
+  helperText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    paddingHorizontal: 2,
+  },
+
+  stepHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  backText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0A84FF',
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+  },
+  stepHint: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#111827',
+  },
+
   strengthRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -607,18 +868,30 @@ const styles = StyleSheet.create({
   strengthText: {
     fontSize: 12,
     color: '#6B7280',
-    fontWeight: '700',
-    width: 88,
+    fontWeight: '800',
+    width: 92,
     textAlign: 'right',
   },
 
-  // Button
+  matchText: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 2,
+  },
+  matchOk: {
+    color: '#067647',
+  },
+  matchBad: {
+    color: '#B42318',
+  },
+
   button: {
     backgroundColor: '#0A84FF',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 2,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
   },
@@ -631,15 +904,27 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.2,
+  },
+
+  ghostBtn: {
+    marginTop: 10,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  ghostText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#111827',
+    opacity: 0.75,
   },
 
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: 10,
     paddingBottom: 2,
   },
   footerText: {
@@ -649,6 +934,6 @@ const styles = StyleSheet.create({
   link: {
     fontSize: 14,
     color: '#0A84FF',
-    fontWeight: '800',
+    fontWeight: '900',
   },
 });
