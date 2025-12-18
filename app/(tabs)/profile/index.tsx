@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -20,8 +20,8 @@ import { ProfileSectionCard } from './components/ProfileSectionCard';
 import { ProfileRow } from './components/ProfileRow';
 import { UserDetailsCard } from './components/UserDetailsCard';
 
-const BG = '#F5F7FA';
-const TEXT = '#0B1220';
+const BG = '#F2F2F7'; // iOS grouped background
+const TEXT = '#111827';
 const MUTED = '#6B7280';
 
 export default function ProfileHomeScreen() {
@@ -166,45 +166,49 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 10,
     backgroundColor: BG,
   },
+
+  // iOS Large Title feel
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '900',
+    fontSize: 34,
+    fontWeight: '700',
     color: TEXT,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
 
   scrollView: {
     flex: 1,
   },
+
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
 
   supportSection: {
     marginTop: 8,
     paddingHorizontal: 4,
   },
+
   supportTitle: {
     fontSize: 13,
-    fontWeight: '800',
-    color: TEXT,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 10,
+    fontWeight: '400',
+    color: MUTED,
+    marginBottom: 8,
+    marginLeft: 12,
   },
+
   supportText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '400',
     color: MUTED,
     lineHeight: 20,
+    marginLeft: 12,
+    marginRight: 12,
   },
 
   bottomSpace: {
