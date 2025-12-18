@@ -24,8 +24,11 @@ const BG = '#E9EDF2';
 const TEXT = '#0B1220';
 const MUTED = '#6B7280';
 
+const TRACK_HEIGHT = 56;
 const THUMB_SIZE = 46;
-const TRACK_HEIGHT = 54;
+
+// Prevent accidental swipes: user must hold this long before drag is accepted
+const MIN_HOLD_MS = 260;
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -34,6 +37,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -43,21 +47,27 @@ export default function LoginScreen() {
   const floatA = useRef(new Animated.Value(0)).current;
   const floatB = useRef(new Animated.Value(0)).current;
 
-  // Swipe control
-  const trackW = useRef(0);
+  // Slider state
   const dragX = useRef(new Animated.Value(0)).current;
+  const trackW = useRef(0);
   const [maxX, setMaxX] = useState(0);
   const dragStartX = useRef(0);
 
-  // Swipe hint shimmer/pulse
+  // Hold-to-arm state
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holding = useRef(false);
+  const holdArmed = useRef(false);
+
+  // Micro-animations
   const hint = useRef(new Animated.Value(0)).current;
+  const holdGlow = useRef(new Animated.Value(0)).current;
 
   const canAttemptLogin = useMemo(() => {
-    if (loading) return false;
+    if (loading || locked) return false;
     if (!email.trim()) return false;
     if (!password) return false;
     return true;
-  }, [email, loading, password]);
+  }, [email, loading, locked, password]);
 
   useEffect(() => {
     Animated.timing(enter, {
@@ -81,6 +91,7 @@ export default function LoginScreen() {
       ])
     );
 
+    // Subtle hint shimmer
     const hintLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(hint, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
@@ -96,10 +107,20 @@ export default function LoginScreen() {
       loopA.stop();
       loopB.stop();
       hintLoop.stop();
+      if (holdTimer.current) clearTimeout(holdTimer.current);
     };
   }, [enter, floatA, floatB, hint]);
 
   const resetSlider = (animated = true) => {
+    setLocked(false);
+    holding.current = false;
+    holdArmed.current = false;
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    Animated.timing(holdGlow, { toValue: 0, duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+
     if (animated) {
       Animated.spring(dragX, { toValue: 0, useNativeDriver: true, friction: 8, tension: 60 }).start();
     } else {
@@ -108,21 +129,24 @@ export default function LoginScreen() {
     dragStartX.current = 0;
   };
 
-  const animateToEnd = () => {
-    Animated.timing(dragX, {
-      toValue: maxX,
+  const animateHoldGlow = (to: number) => {
+    Animated.timing(holdGlow, {
+      toValue: to,
       duration: 160,
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
   };
 
-  const animateToStart = () => {
-    Animated.spring(dragX, { toValue: 0, useNativeDriver: true, friction: 8, tension: 60 }).start();
+  const validate = () => {
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
+      return false;
+    }
+    return true;
   };
 
   const animateSuccessAndNavigate = () => {
-    // subtle feedback without new dependencies
     Vibration.vibrate(18);
 
     Animated.timing(enter, {
@@ -135,25 +159,19 @@ export default function LoginScreen() {
     });
   };
 
-  const validate = () => {
-    if (!email.trim() || !password) {
-      setError('Please enter your email and password.');
-      return false;
-    }
-    return true;
-  };
-
   const submitLogin = async () => {
     if (loading) return;
 
     setError(null);
 
     if (!validate()) {
+      setLoading(false);
       resetSlider(true);
       return;
     }
 
     setLoading(true);
+    setLocked(true);
 
     const { error: signInError } = await signIn(email.trim(), password);
 
@@ -168,51 +186,116 @@ export default function LoginScreen() {
     animateSuccessAndNavigate();
   };
 
+  const onTrackLayout = (w: number) => {
+    trackW.current = w;
+    const computedMax = Math.max(0, w - THUMB_SIZE - 6); // matches track padding
+    setMaxX(computedMax);
+
+    dragX.stopAnimation((v) => {
+      const current = typeof v === 'number' ? v : 0;
+      if (current > computedMax) dragX.setValue(computedMax);
+    });
+  };
+
+  const armHold = () => {
+    holding.current = true;
+    holdArmed.current = false;
+
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    holdTimer.current = setTimeout(() => {
+      if (!holding.current) return;
+      holdArmed.current = true;
+      animateHoldGlow(1);
+      // subtle confirmation that hold is accepted
+      Vibration.vibrate(10);
+    }, MIN_HOLD_MS);
+  };
+
+  const disarmHold = () => {
+    holding.current = false;
+    holdArmed.current = false;
+
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+
+    animateHoldGlow(0);
+  };
+
   const panResponder = useMemo(() => {
     return PanResponder.create({
+      onStartShouldSetPanResponder: () => !loading && !locked,
       onMoveShouldSetPanResponder: (_evt, gesture) => {
-        if (loading) return false;
-        // Only start swipe if horizontal movement is intentional
-        return Math.abs(gesture.dx) > 6 && Math.abs(gesture.dy) < 10;
+        if (loading || locked) return false;
+        // user can start moving, but movement will only apply after holdArmed is true
+        return Math.abs(gesture.dx) > 4 && Math.abs(gesture.dy) < 12;
       },
       onPanResponderGrant: () => {
+        if (loading || locked) return;
+
+        setError(null);
+
         dragX.stopAnimation((v) => {
           dragStartX.current = typeof v === 'number' ? v : 0;
         });
+
+        armHold();
       },
       onPanResponderMove: (_evt, gesture) => {
-        if (loading) return;
+        if (loading || locked) return;
+
+        // Require minimum hold before any drag is accepted
+        if (!holdArmed.current) {
+          dragX.setValue(0);
+          return;
+        }
+
         const raw = dragStartX.current + gesture.dx;
         const clamped = Math.max(0, Math.min(maxX, raw));
         dragX.setValue(clamped);
       },
       onPanResponderRelease: (_evt, gesture) => {
-        if (loading) return;
+        if (loading || locked) return;
 
-        const threshold = maxX * 0.92;
-        const endPos = dragStartX.current + gesture.dx;
+        const releasedAt = dragStartX.current + gesture.dx;
+        const reachedEdge = releasedAt >= maxX - 2; // tolerant end snap
 
-        if (endPos >= threshold) {
-          animateToEnd();
-          void submitLogin();
-        } else {
-          animateToStart();
+        disarmHold();
+
+        if (!holdArmed.current) {
+          // Hold never armed; always snap back
+          resetSlider(true);
+          return;
         }
+
+        if (reachedEdge) {
+          // Must reach 100% while holding; only then submit
+          Animated.timing(dragX, {
+            toValue: maxX,
+            duration: 120,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }).start(() => {
+            void submitLogin();
+          });
+          return;
+        }
+
+        // Partial swipe: snap back
+        resetSlider(true);
       },
       onPanResponderTerminate: () => {
-        if (loading) return;
-        animateToStart();
+        if (loading || locked) return;
+        disarmHold();
+        resetSlider(true);
       },
     });
-  }, [dragX, loading, maxX]);
+  }, [dragX, loading, locked, maxX, holdGlow]);
 
   const pageAnimStyle = {
     opacity: enter,
-    transform: [
-      {
-        translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }),
-      },
-    ],
+    transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
   } as const;
 
   const blobAStyle = {
@@ -239,40 +322,35 @@ export default function LoginScreen() {
     extrapolate: 'clamp',
   });
 
-  const hintOpacity = hint.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.55, 1],
-  });
+  const hintOpacity = hint.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] });
+  const hintTranslate = hint.interpolate({ inputRange: [0, 1], outputRange: [0, 6] });
 
-  const hintTranslate = hint.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 6],
-  });
+  const holdGlowOpacity = holdGlow.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const holdGlowScale = holdGlow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] });
 
-  const onTrackLayout = (w: number) => {
-    trackW.current = w;
-    const computedMax = Math.max(0, w - THUMB_SIZE - 6); // padding allowance
-    setMaxX(computedMax);
-    // Ensure slider is in-bounds if layout changes
-    dragX.stopAnimation((v) => {
-      const current = typeof v === 'number' ? v : 0;
-      if (current > computedMax) dragX.setValue(computedMax);
-    });
-  };
+  // Accessible fallback: long-press to confirm intent (non-swipe)
+  const onLongPressLogin = () => {
+    if (loading || locked) return;
+    setError(null);
 
-  const onTapSwipeControl = () => {
-    if (!canAttemptLogin) {
-      setError('Please enter your email and password.');
+    if (!validate()) {
       resetSlider(true);
       return;
     }
-    animateToEnd();
-    void submitLogin();
+
+    // mimic reaching edge then load
+    Animated.timing(dragX, {
+      toValue: maxX,
+      duration: 160,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start(() => {
+      void submitLogin();
+    });
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Premium glassy background blobs */}
       <View pointerEvents="none" style={styles.bg}>
         <Animated.View style={[styles.blob, styles.blobA, blobAStyle]} />
         <Animated.View style={[styles.blob, styles.blobB, blobBStyle]} />
@@ -287,7 +365,8 @@ export default function LoginScreen() {
                 style={styles.backBtn}
                 hitSlop={10}
                 accessibilityRole="button"
-                accessibilityLabel="Go back">
+                accessibilityLabel="Go back"
+              >
                 <ChevronLeft size={18} color={TEXT} />
               </Pressable>
 
@@ -299,7 +378,6 @@ export default function LoginScreen() {
                 </View>
               ) : null}
 
-              {/* Email */}
               <View style={styles.inputPill}>
                 <View style={styles.leftIcon}>
                   <Mail size={18} color={MUTED} />
@@ -314,15 +392,14 @@ export default function LoginScreen() {
                   onChangeText={(t) => {
                     setEmail(t);
                     if (error) setError(null);
-                    // If user edits fields after a failed attempt, keep slider ready
+                    if (!loading && !locked) resetSlider(false);
                   }}
-                  editable={!loading}
+                  editable={!loading && !locked}
                   returnKeyType="next"
                   accessibilityLabel="Email address"
                 />
               </View>
 
-              {/* Password */}
               <View style={styles.inputPill}>
                 <View style={styles.leftIcon}>
                   <Lock size={18} color={MUTED} />
@@ -335,13 +412,15 @@ export default function LoginScreen() {
                   onChangeText={(t) => {
                     setPassword(t);
                     if (error) setError(null);
+                    if (!loading && !locked) resetSlider(false);
                   }}
                   secureTextEntry={!showPassword}
-                  editable={!loading}
+                  editable={!loading && !locked}
                   returnKeyType="done"
                   onSubmitEditing={() => {
-                    // keyboard-friendly submit
-                    onTapSwipeControl();
+                    // keyboard-friendly intent: long-press fallback is the primary accessible alternative
+                    // here we keep submit from keyboard as a “confirm” equivalent
+                    onLongPressLogin();
                   }}
                   accessibilityLabel="Password"
                 />
@@ -350,25 +429,21 @@ export default function LoginScreen() {
                   style={styles.rightIcon}
                   hitSlop={10}
                   accessibilityRole="button"
-                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
                   {showPassword ? <EyeOff size={18} color={MUTED} /> : <Eye size={18} color={MUTED} />}
                 </Pressable>
               </View>
 
-              {/* Swipe-to-login control */}
+              {/* Hold-and-swipe to login */}
               <View style={styles.swipeWrap}>
-                <Pressable
-                  onPress={onTapSwipeControl}
-                  disabled={loading}
-                  accessibilityRole="button"
-                  accessibilityLabel="Swipe right to log in. You can also double tap to log in."
-                  accessibilityHint="Swipe the handle to the right to submit the form"
-                  style={({ pressed }) => [
-                    styles.swipeTrack,
-                    !canAttemptLogin ? styles.swipeTrackDisabled : null,
-                    pressed && !loading ? styles.swipePressed : null,
-                  ]}
+                <View
                   onLayout={(e) => onTrackLayout(e.nativeEvent.layout.width)}
+                  style={[styles.swipeTrack, (!canAttemptLogin || locked) ? styles.swipeTrackDisabled : null]}
+                  accessible
+                  accessibilityRole="adjustable"
+                  accessibilityLabel="Hold and swipe to the edge to log in"
+                  accessibilityHint="Press and hold the handle briefly, then drag it all the way to the right to log in"
                 >
                   {/* Progress fill */}
                   <Animated.View
@@ -377,31 +452,44 @@ export default function LoginScreen() {
                       styles.swipeFill,
                       {
                         width: fillWidth,
-                        opacity: loading ? 0.9 : 0.75,
+                        opacity: loading ? 0.95 : 0.7,
                       },
                     ]}
                   />
 
-                  {/* Label + animated hint */}
+                  {/* Label + hint */}
                   <Animated.View
                     pointerEvents="none"
                     style={[
                       styles.swipeLabelRow,
                       {
-                        opacity: loading ? 0.65 : hintOpacity,
+                        opacity: loading ? 0.55 : hintOpacity,
                         transform: [{ translateX: loading ? 0 : hintTranslate }],
                       },
                     ]}
                   >
-                    <Text style={styles.swipeLabel}>Swipe right to log in</Text>
+                    <Text style={styles.swipeLabel}>Hold &amp; swipe to the edge to log in</Text>
                     <ChevronRight size={16} color={canAttemptLogin ? TEXT : 'rgba(11,18,32,0.35)'} />
                   </Animated.View>
 
-                  {/* Draggable thumb */}
+                  {/* Hold glow (appears after min hold arms) */}
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.holdGlow,
+                      {
+                        opacity: holdGlowOpacity,
+                        transform: [{ scale: holdGlowScale }],
+                      },
+                    ]}
+                  />
+
+                  {/* Thumb */}
                   <Animated.View
                     {...panResponder.panHandlers}
                     style={[
                       styles.swipeThumb,
+                      locked ? styles.thumbLocked : null,
                       {
                         transform: [{ translateX: dragX }],
                       },
@@ -409,16 +497,28 @@ export default function LoginScreen() {
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
                   >
-                    {loading ? (
-                      <ActivityIndicator color={TEXT} />
-                    ) : (
-                      <ChevronRight size={18} color={TEXT} />
-                    )}
+                    {loading ? <ActivityIndicator color={TEXT} /> : <ChevronRight size={18} color={TEXT} />}
                   </Animated.View>
+                </View>
+
+                {/* Accessible fallback (non-swipe): long-press intent */}
+                <Pressable
+                  onLongPress={onLongPressLogin}
+                  delayLongPress={1000}
+                  disabled={loading || locked}
+                  accessibilityRole="button"
+                  accessibilityLabel="Press and hold to log in"
+                  accessibilityHint="Press and hold for one second to log in without swiping"
+                  style={({ pressed }) => [
+                    styles.fallbackBtn,
+                    pressed && !(loading || locked) ? styles.fallbackPressed : null,
+                    (loading || locked) ? styles.fallbackDisabled : null,
+                  ]}
+                >
+                  <Text style={styles.fallbackText}>Press and hold Enter for 1s to log in</Text>
                 </Pressable>
               </View>
 
-              {/* Switch */}
               <View style={styles.switchRow}>
                 <Text style={styles.switchText}>Don’t have an account? </Text>
                 <Link href="/(auth)/signup" asChild>
@@ -428,7 +528,6 @@ export default function LoginScreen() {
                 </Link>
               </View>
 
-              {/* Glass edge highlight */}
               <View pointerEvents="none" style={styles.edgeHighlight} />
             </Animated.View>
           </View>
@@ -530,9 +629,8 @@ const styles = StyleSheet.create({
   rightIcon: { paddingLeft: 10, paddingVertical: 8 },
   input: { flex: 1, fontSize: 14, color: TEXT, paddingVertical: 10 },
 
-  swipeWrap: {
-    marginTop: 16,
-  },
+  swipeWrap: { marginTop: 16 },
+
   swipeTrack: {
     height: TRACK_HEIGHT,
     borderRadius: 999,
@@ -543,12 +641,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  swipeTrackDisabled: {
-    opacity: 0.6,
-  },
-  swipePressed: {
-    opacity: 0.96,
-  },
+  swipeTrackDisabled: { opacity: 0.6 },
+
   swipeFill: {
     position: 'absolute',
     left: 0,
@@ -557,6 +651,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(52,182,122,0.30)',
   },
+
   swipeLabelRow: {
     position: 'absolute',
     left: 18,
@@ -572,6 +667,19 @@ const styles = StyleSheet.create({
     marginRight: 8,
     letterSpacing: 0.1,
   },
+
+  holdGlow: {
+    position: 'absolute',
+    left: 8,
+    top: 8,
+    bottom: 8,
+    width: 74,
+    borderRadius: 999,
+    backgroundColor: 'rgba(52,182,122,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,182,122,0.22)',
+  },
+
   swipeThumb: {
     width: THUMB_SIZE,
     height: THUMB_SIZE,
@@ -586,6 +694,29 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 8 },
     elevation: 2,
+  },
+  thumbLocked: {
+    opacity: 0.9,
+  },
+
+  fallbackBtn: {
+    marginTop: 10,
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.40)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  fallbackPressed: { opacity: 0.9 },
+  fallbackDisabled: { opacity: 0.6 },
+  fallbackText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: 'rgba(11,18,32,0.78)',
+    letterSpacing: 0.1,
+    textAlign: 'center',
   },
 
   switchRow: {
