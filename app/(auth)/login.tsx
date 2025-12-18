@@ -1,280 +1,197 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Easing,
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+  ActivityIndicator,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { ChevronLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-
-const GREEN = '#34B67A';
-const BG = '#E9EDF2';
-const TEXT = '#0B1220';
-const MUTED = '#6B7280';
+import { CheckSquare } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Entrance + background motion
-  const enter = useRef(new Animated.Value(0)).current;
-  const floatA = useRef(new Animated.Value(0)).current;
-  const floatB = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(enter, {
-      toValue: 1,
-      duration: 420,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatA, { toValue: 1, duration: 5200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(floatA, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatB, { toValue: 1, duration: 6400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(floatB, { toValue: 0, duration: 6400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ])
-    ).start();
-  }, [enter, floatA, floatB]);
-
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      setError('Please enter your email and password.');
+    if (!email || !password) {
+      setError('Please fill in all fields');
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    const { error: signInError } = await signIn(email.trim(), password);
+    const { error } = await signIn(email, password);
 
-    if (signInError) {
-      setError(signInError.message);
+    if (error) {
+      setError(error.message);
       setLoading(false);
-      return;
+    } else {
+      router.replace('/(tabs)');
     }
-
-    router.replace('/(tabs)');
   };
 
-  const pageAnimStyle = {
-    opacity: enter,
-    transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-  } as const;
-
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Glass background */}
-      <View pointerEvents="none" style={styles.bg}>
-        <Animated.View
-          style={[
-            styles.blob,
-            styles.blobA,
-            {
-              transform: [
-                { translateX: floatA.interpolate({ inputRange: [0, 1], outputRange: [-18, 26] }) },
-                { translateY: floatA.interpolate({ inputRange: [0, 1], outputRange: [-10, 18] }) },
-                { scale: floatA.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) },
-              ],
-              opacity: floatA.interpolate({ inputRange: [0, 1], outputRange: [0.38, 0.56] }),
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.blob,
-            styles.blobB,
-            {
-              transform: [
-                { translateX: floatB.interpolate({ inputRange: [0, 1], outputRange: [22, -22] }) },
-                { translateY: floatB.interpolate({ inputRange: [0, 1], outputRange: [18, -14] }) },
-                { scale: floatB.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] }) },
-              ],
-              opacity: floatB.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.46] }),
-            },
-          ]}
-        />
-      </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <CheckSquare size={48} color="#007AFF" />
+          </View>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
+        </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Animated.View style={[styles.glassCard, pageAnimStyle]}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
-              <ChevronLeft size={18} color={TEXT} />
-            </Pressable>
+        <View style={styles.form}>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
-            <Text style={styles.title}>Log in</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="your@email.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholderTextColor="#8E8E93"
+            />
+          </View>
 
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor="#8E8E93"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleLogin}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
             )}
+          </TouchableOpacity>
 
-            <View style={styles.inputPill}>
-              <Mail size={18} color={MUTED} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email address"
-                placeholderTextColor="rgba(107,114,128,0.85)"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={(t) => {
-                  setEmail(t);
-                  if (error) setError(null);
-                }}
-              />
-            </View>
-
-            <View style={styles.inputPill}>
-              <Lock size={18} color={MUTED} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="rgba(107,114,128,0.85)"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={(t) => {
-                  setPassword(t);
-                  if (error) setError(null);
-                }}
-                onSubmitEditing={handleLogin}
-                returnKeyType="done"
-              />
-              <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={10}>
-                {showPassword ? <EyeOff size={18} color={MUTED} /> : <Eye size={18} color={MUTED} />}
-              </Pressable>
-            </View>
-
-            <Pressable
-              onPress={handleLogin}
-              disabled={loading}
-              style={({ pressed }) => [
-                styles.primaryBtn,
-                pressed && !loading ? styles.primaryBtnPressed : null,
-                loading ? styles.primaryBtnDisabled : null,
-              ]}
-            >
-              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryBtnText}>Login</Text>}
-            </Pressable>
-
-            <View style={styles.switchRow}>
-              <Text style={styles.switchText}>Don’t have an account? </Text>
-              <Link href="/(auth)/signup">
-                <Text style={styles.switchLink}>Sign Up</Text>
-              </Link>
-            </View>
-
-            <View pointerEvents="none" style={styles.edgeHighlight} />
-          </Animated.View>
-        </ScrollView>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Link href="/(auth)/signup" asChild>
+              <TouchableOpacity>
+                <Text style={styles.link}>Sign Up</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  bg: { ...StyleSheet.absoluteFillObject },
-  blob: { position: 'absolute', width: 320, height: 320, borderRadius: 320 },
-  blobA: { top: -120, left: -120, backgroundColor: 'rgba(52,182,122,0.22)' },
-  blobB: { bottom: -140, right: -120, backgroundColor: 'rgba(59,130,246,0.18)' },
-
-  scroll: { padding: 24, justifyContent: 'center', flexGrow: 1 },
-
-  glassCard: {
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 30,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 14 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
-
-  edgeHighlight: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 46,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+  content: {
+    flex: 1,
+    padding: 24,
   },
-
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+  header: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
+    marginTop: 40,
+    marginBottom: 48,
   },
-
-  title: { fontSize: 30, fontWeight: '900', textAlign: 'center', color: TEXT, marginBottom: 20 },
-
-  errorBox: {
-    backgroundColor: 'rgba(255,236,236,0.9)',
-    padding: 10,
-    borderRadius: 14,
-    marginBottom: 12,
+  logoContainer: {
+    marginBottom: 24,
   },
-  errorText: { color: '#B42318', fontWeight: '800', fontSize: 12 },
-
-  inputPill: {
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  form: {
+    flex: 1,
+  },
+  errorContainer: {
+    backgroundColor: '#FFE5E5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 14,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(246,247,249,0.55)',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    height: 52,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.65)',
-  },
-  input: { flex: 1, marginLeft: 8, fontSize: 14, color: TEXT },
-
-  primaryBtn: {
-    backgroundColor: GREEN,
-    height: 52,
-    borderRadius: 999,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    alignItems: 'center',
+    marginTop: 24,
   },
-  primaryBtnPressed: { opacity: 0.9 },
-  primaryBtnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: '#FFF', fontWeight: '900', fontSize: 15 },
-
-  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
-  switchText: { color: MUTED, fontWeight: '700', fontSize: 12.5 },
-  switchLink: { color: GREEN, fontWeight: '900', fontSize: 12.5 },
+  footerText: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  link: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
 });
