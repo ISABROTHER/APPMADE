@@ -28,22 +28,17 @@ export default function LoginScreen() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  // Entrance animations
   const headerAnim = useRef(new Animated.Value(0)).current;
   const formAnim = useRef(new Animated.Value(0)).current;
 
-  // Background “blob” animations
   const blobA = useRef(new Animated.Value(0)).current;
   const blobB = useRef(new Animated.Value(0)).current;
 
-  // Focus micro-interactions
   const emailFocus = useRef(new Animated.Value(0)).current;
   const passFocus = useRef(new Animated.Value(0)).current;
 
-  // Button press micro-interaction
   const buttonScale = useRef(new Animated.Value(1)).current;
 
-  // Error shake
   const shakeX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -158,7 +153,6 @@ export default function LoginScreen() {
     router.replace('/(tabs)');
   };
 
-  // UI-only placeholders (no new deps / provider wiring here)
   const handleSocialSignIn = (provider: 'apple' | 'google') => {
     setAndShakeError(
       provider === 'apple'
@@ -302,153 +296,153 @@ export default function LoginScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
-          <Animated.View style={[styles.header, headerStyle]}>
-            <View style={styles.logoRing}>
-              <View style={styles.logoInner}>
-                <Sparkles size={42} color="#0A84FF" />
-              </View>
-            </View>
-
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
-          </Animated.View>
-
-          <Animated.View style={[styles.card, formStyle]}>
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            {/* Social sign in */}
-            <View style={styles.socialRow}>
-              <Pressable
-                onPress={() => handleSocialSignIn('apple')}
-                disabled={loading}
-                style={({ pressed }) => [
-                  styles.socialBtn,
-                  pressed && !loading ? styles.socialBtnPressed : null,
-                  loading ? styles.socialBtnDisabled : null,
-                ]}>
-                <Apple size={18} color="#111827" />
-                <Text style={styles.socialText}>Apple</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => handleSocialSignIn('google')}
-                disabled={loading}
-                style={({ pressed }) => [
-                  styles.socialBtn,
-                  pressed && !loading ? styles.socialBtnPressed : null,
-                  loading ? styles.socialBtnDisabled : null,
-                ]}>
-                <View style={styles.googleBadge}>
-                  <Text style={styles.googleBadgeText}>G</Text>
+          <View style={styles.pageMax}>
+            <Animated.View style={[styles.header, headerStyle]}>
+              <View style={styles.logoRing}>
+                <View style={styles.logoInner}>
+                  <Sparkles size={42} color="#0A84FF" />
                 </View>
-                <Text style={styles.socialText}>Google</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Email */}
-            <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(emailFocus)]}>
-              <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(emailFocus)]} />
-              <View style={styles.field}>
-                <View style={styles.fieldIcon}>
-                  <Mail size={18} color="#6B7280" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email address"
-                  value={email}
-                  onChangeText={(t) => {
-                    setEmail(t);
-                    if (error) setError(null);
-                  }}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholderTextColor="#9CA3AF"
-                  onFocus={() => animateFocus(emailFocus, 1)}
-                  onBlur={() => animateFocus(emailFocus, 0)}
-                  editable={!loading}
-                  returnKeyType="next"
-                />
               </View>
+
+              <Text style={styles.title}>Welcome back</Text>
+              <Text style={styles.subtitle}>Sign in to continue</Text>
             </Animated.View>
 
-            {/* Password */}
-            <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(passFocus)]}>
-              <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(passFocus)]} />
-              <View style={styles.field}>
-                <View style={styles.fieldIcon}>
-                  <Lock size={18} color="#6B7280" />
+            <Animated.View style={[styles.card, formStyle]}>
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={(t) => {
-                    setPassword(t);
-                    if (error) setError(null);
-                  }}
-                  secureTextEntry={!showPassword}
-                  placeholderTextColor="#9CA3AF"
-                  onFocus={() => animateFocus(passFocus, 1)}
-                  onBlur={() => animateFocus(passFocus, 0)}
-                  editable={!loading}
-                  returnKeyType="done"
-                  onSubmitEditing={() => {
-                    if (!loading) void handleSignIn();
-                  }}
-                />
-                <Pressable onPress={() => setShowPassword((s) => !s)} style={styles.trailingIcon} hitSlop={10}>
-                  {showPassword ? <EyeOff size={18} color="#6B7280" /> : <Eye size={18} color="#6B7280" />}
+              )}
+
+              <View style={styles.socialRow}>
+                <Pressable
+                  onPress={() => handleSocialSignIn('apple')}
+                  disabled={loading}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    styles.socialBtnFirst,
+                    pressed && !loading ? styles.socialBtnPressed : null,
+                    loading ? styles.socialBtnDisabled : null,
+                  ]}>
+                  <Apple size={18} color="#111827" />
+                  <Text style={styles.socialText}>Apple</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => handleSocialSignIn('google')}
+                  disabled={loading}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    pressed && !loading ? styles.socialBtnPressed : null,
+                    loading ? styles.socialBtnDisabled : null,
+                  ]}>
+                  <View style={styles.googleBadge}>
+                    <Text style={styles.googleBadgeText}>G</Text>
+                  </View>
+                  <Text style={styles.socialText}>Google</Text>
                 </Pressable>
               </View>
 
-              <View style={styles.metaRow}>
-                <Text style={styles.metaHint}>Tip: Use a strong password.</Text>
-                <Link href="/(auth)/forgot-password" asChild>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(emailFocus)]}>
+                <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(emailFocus)]} />
+                <View style={styles.field}>
+                  <View style={styles.fieldIcon}>
+                    <Mail size={18} color="#6B7280" />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email address"
+                    value={email}
+                    onChangeText={(t) => {
+                      setEmail(t);
+                      if (error) setError(null);
+                    }}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholderTextColor="#9CA3AF"
+                    onFocus={() => animateFocus(emailFocus, 1)}
+                    onBlur={() => animateFocus(emailFocus, 0)}
+                    editable={!loading}
+                    returnKeyType="next"
+                  />
+                </View>
+              </Animated.View>
+
+              <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(passFocus)]}>
+                <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(passFocus)]} />
+                <View style={styles.field}>
+                  <View style={styles.fieldIcon}>
+                    <Lock size={18} color="#6B7280" />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    value={password}
+                    onChangeText={(t) => {
+                      setPassword(t);
+                      if (error) setError(null);
+                    }}
+                    secureTextEntry={!showPassword}
+                    placeholderTextColor="#9CA3AF"
+                    onFocus={() => animateFocus(passFocus, 1)}
+                    onBlur={() => animateFocus(passFocus, 0)}
+                    editable={!loading}
+                    returnKeyType="done"
+                    onSubmitEditing={() => {
+                      if (!loading) void handleSignIn();
+                    }}
+                  />
+                  <Pressable onPress={() => setShowPassword((s) => !s)} style={styles.trailingIcon} hitSlop={10}>
+                    {showPassword ? <EyeOff size={18} color="#6B7280" /> : <Eye size={18} color="#6B7280" />}
+                  </Pressable>
+                </View>
+
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaHint}>Tip: Use a strong password.</Text>
+                  <Link href="/(auth)/forgot-password" asChild>
+                    <Pressable hitSlop={8}>
+                      <Text style={styles.metaLink}>Forgot?</Text>
+                    </Pressable>
+                  </Link>
+                </View>
+              </Animated.View>
+
+              <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+                <Pressable
+                  onPress={handleSignIn}
+                  disabled={!canSubmit}
+                  onPressIn={onPressInButton}
+                  onPressOut={onPressOutButton}
+                  style={({ pressed }) => [
+                    styles.button,
+                    pressed && canSubmit ? styles.buttonPressed : null,
+                    !canSubmit ? styles.buttonDisabled : null,
+                  ]}>
+                  {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign in</Text>}
+                </Pressable>
+              </Animated.View>
+
+              <Pressable onPress={handleGuest} style={styles.ghostBtn} hitSlop={8}>
+                <Text style={styles.ghostText}>Continue as guest</Text>
+              </Pressable>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>New here? </Text>
+                <Link href="/(auth)/signup" asChild>
                   <Pressable hitSlop={8}>
-                    <Text style={styles.metaLink}>Forgot?</Text>
+                    <Text style={styles.link}>Create account</Text>
                   </Pressable>
                 </Link>
               </View>
             </Animated.View>
-
-            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-              <Pressable
-                onPress={handleSignIn}
-                disabled={!canSubmit}
-                onPressIn={onPressInButton}
-                onPressOut={onPressOutButton}
-                style={({ pressed }) => [
-                  styles.button,
-                  pressed && canSubmit ? styles.buttonPressed : null,
-                  !canSubmit ? styles.buttonDisabled : null,
-                ]}>
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign in</Text>}
-              </Pressable>
-            </Animated.View>
-
-            <Pressable onPress={handleGuest} style={styles.ghostBtn} hitSlop={8}>
-              <Text style={styles.ghostText}>Continue as guest</Text>
-            </Pressable>
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>New here? </Text>
-              <Link href="/(auth)/signup" asChild>
-                <Pressable hitSlop={8}>
-                  <Text style={styles.link}>Create account</Text>
-                </Pressable>
-              </Link>
-            </View>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -456,46 +450,18 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
+  flex: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
 
-  bg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#F9FAFB',
-  },
-  blob: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 260,
-  },
-  blobA: {
-    top: -80,
-    left: -90,
-    backgroundColor: '#D6E9FF',
-  },
-  blobB: {
-    bottom: -90,
-    right: -90,
-    backgroundColor: '#E9D6FF',
-  },
+  bg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#F9FAFB' },
+  blob: { position: 'absolute', width: 260, height: 260, borderRadius: 260 },
+  blobA: { top: -80, left: -90, backgroundColor: '#D6E9FF' },
+  blobB: { bottom: -90, right: -90, backgroundColor: '#E9D6FF' },
 
-  scrollContent: {
-    padding: 24,
-    paddingTop: 32,
-    paddingBottom: 32,
-  },
+  scrollContent: { padding: 24, paddingTop: 32, paddingBottom: 32 },
+  pageMax: { width: '100%', maxWidth: 520, alignSelf: 'center' },
 
-  header: {
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 18,
-  },
+  header: { alignItems: 'center', marginTop: 8, marginBottom: 18 },
   logoRing: {
     width: 82,
     height: 82,
@@ -515,17 +481,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#0B1220',
-    letterSpacing: -0.2,
-  },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 14,
-    color: '#6B7280',
-  },
+  title: { fontSize: 30, fontWeight: '800', color: '#0B1220', letterSpacing: -0.2 },
+  subtitle: { marginTop: 6, fontSize: 14, color: '#6B7280' },
 
   card: {
     backgroundColor: 'rgba(255,255,255,0.92)',
@@ -548,16 +505,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFD0D0',
   },
-  errorText: {
-    color: '#B42318',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  errorText: { color: '#B42318', fontSize: 13, fontWeight: '600' },
 
-  socialRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  socialRow: { flexDirection: 'row' },
   socialBtn: {
     flex: 1,
     minHeight: 50,
@@ -568,19 +518,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 8,
   },
-  socialBtnPressed: {
-    opacity: 0.92,
-  },
-  socialBtnDisabled: {
-    opacity: 0.6,
-  },
-  socialText: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '800',
-  },
+  socialBtnFirst: { marginRight: 10 },
+  socialBtnPressed: { opacity: 0.92 },
+  socialBtnDisabled: { opacity: 0.6 },
+  socialText: { fontSize: 14, color: '#111827', fontWeight: '800', marginLeft: 8 },
   googleBadge: {
     width: 22,
     height: 22,
@@ -589,38 +531,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  googleBadgeText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#111827',
-  },
+  googleBadgeText: { fontSize: 12, fontWeight: '900', color: '#111827' },
 
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 14,
-    marginBottom: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '800',
-  },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
+  dividerText: { marginHorizontal: 10, fontSize: 12, color: '#9CA3AF', fontWeight: '800' },
 
-  fieldWrap: {
-    marginBottom: 14,
-  },
-  fieldGlow: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 14,
-    backgroundColor: 'rgba(10,132,255,0.10)',
-  },
+  fieldWrap: { marginBottom: 14 },
+  fieldGlow: { ...StyleSheet.absoluteFillObject, borderRadius: 14, backgroundColor: 'rgba(10,132,255,0.10)' },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -631,38 +549,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     minHeight: 54,
   },
-  fieldIcon: {
-    width: 28,
-    alignItems: 'flex-start',
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#0B1220',
-  },
-  trailingIcon: {
-    paddingLeft: 8,
-    paddingVertical: 10,
-  },
+  fieldIcon: { width: 28, alignItems: 'flex-start' },
+  input: { flex: 1, paddingVertical: 14, fontSize: 16, color: '#0B1220' },
+  trailingIcon: { paddingLeft: 8, paddingVertical: 10 },
 
-  metaRow: {
-    marginTop: 8,
-    paddingHorizontal: 2,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  metaHint: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
-  metaLink: {
-    fontSize: 12,
-    color: '#0A84FF',
-    fontWeight: '900',
-  },
+  metaRow: { marginTop: 8, paddingHorizontal: 2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  metaHint: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+  metaLink: { fontSize: 12, color: '#0A84FF', fontWeight: '900' },
 
   button: {
     backgroundColor: '#0A84FF',
@@ -673,45 +566,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
   },
-  buttonPressed: {
-    opacity: 0.92,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 0.2,
-  },
+  buttonPressed: { opacity: 0.92 },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '900', letterSpacing: 0.2 },
 
-  ghostBtn: {
-    marginTop: 10,
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  ghostText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#111827',
-    opacity: 0.75,
-  },
+  ghostBtn: { marginTop: 10, alignItems: 'center', paddingVertical: 10 },
+  ghostText: { fontSize: 13, fontWeight: '900', color: '#111827', opacity: 0.75 },
 
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingBottom: 2,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  link: {
-    fontSize: 14,
-    color: '#0A84FF',
-    fontWeight: '900',
-  },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, paddingBottom: 2 },
+  footerText: { fontSize: 14, color: '#6B7280' },
+  link: { fontSize: 14, color: '#0A84FF', fontWeight: '900' },
 });
