@@ -1,10 +1,12 @@
+export const PICKUP_FEE = 15;
+
 export const calculateTotalPrice = (
   basePrice: number,
-  deliveryMethodCost: number
+  pickupFee: number = 0
 ): number => {
-  return basePrice + deliveryMethodCost;
+  return basePrice + pickupFee;
 };
 
 export const formatPrice = (price: number): string => {
-  return `${price} kr`;
+  return `GH₵${price.toFixed(2)}`;
 };
