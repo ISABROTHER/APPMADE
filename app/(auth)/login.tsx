@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { Apple, Eye, EyeOff, Lock, Mail, Sparkles } from 'lucide-react-native';
+import { Eye, EyeOff, Lock, Mail, Sparkles } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
@@ -42,9 +42,6 @@ export default function LoginScreen() {
 
   // Button press micro-interaction
   const buttonScale = useRef(new Animated.Value(1)).current;
-
-  // Error shake
-  const shakeX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -122,25 +119,9 @@ export default function LoginScreen() {
     }).start();
   };
 
-  const shake = () => {
-    shakeX.setValue(0);
-    Animated.sequence([
-      Animated.timing(shakeX, { toValue: 1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: -1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: -1, duration: 40, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
-    ]).start();
-  };
-
-  const setAndShakeError = (msg: string) => {
-    setError(msg);
-    shake();
-  };
-
   const handleSignIn = async () => {
     if (!email || !password) {
-      setAndShakeError('Please enter your email and password');
+      setError('Please enter your email and password');
       return;
     }
 
@@ -150,24 +131,11 @@ export default function LoginScreen() {
     const { error: signInError } = await signIn(email, password);
 
     if (signInError) {
-      setAndShakeError(signInError.message);
+      setError(signInError.message);
       setLoading(false);
       return;
     }
 
-    router.replace('/(tabs)');
-  };
-
-  // UI-only placeholders (no new deps / provider wiring here)
-  const handleSocialSignIn = (provider: 'apple' | 'google') => {
-    setAndShakeError(
-      provider === 'apple'
-        ? 'Apple sign-in is not connected yet. Tell me your auth provider (e.g., Supabase/Firebase) and I will wire it.'
-        : 'Google sign-in is not connected yet. Tell me your auth provider (e.g., Supabase/Firebase) and I will wire it.'
-    );
-  };
-
-  const handleGuest = () => {
     router.replace('/(tabs)');
   };
 
@@ -246,12 +214,6 @@ export default function LoginScreen() {
           outputRange: [16, 0],
         }),
       },
-      {
-        translateX: shakeX.interpolate({
-          inputRange: [-1, 0, 1],
-          outputRange: [-7, 0, 7],
-        }),
-      },
     ],
   } as const;
 
@@ -295,12 +257,15 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Animated background */}
       <View pointerEvents="none" style={styles.bg}>
         <Animated.View style={[styles.blob, styles.blobA, blobATransform]} />
         <Animated.View style={[styles.blob, styles.blobB, blobBTransform]} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
           <Animated.View style={[styles.header, headerStyle]}>
             <View style={styles.logoRing}>
@@ -320,41 +285,6 @@ export default function LoginScreen() {
               </View>
             )}
 
-            {/* Social sign in */}
-            <View style={styles.socialRow}>
-              <Pressable
-                onPress={() => handleSocialSignIn('apple')}
-                disabled={loading}
-                style={({ pressed }) => [
-                  styles.socialBtn,
-                  pressed && !loading ? styles.socialBtnPressed : null,
-                  loading ? styles.socialBtnDisabled : null,
-                ]}>
-                <Apple size={18} color="#111827" />
-                <Text style={styles.socialText}>Apple</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => handleSocialSignIn('google')}
-                disabled={loading}
-                style={({ pressed }) => [
-                  styles.socialBtn,
-                  pressed && !loading ? styles.socialBtnPressed : null,
-                  loading ? styles.socialBtnDisabled : null,
-                ]}>
-                <View style={styles.googleBadge}>
-                  <Text style={styles.googleBadgeText}>G</Text>
-                </View>
-                <Text style={styles.socialText}>Google</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
             {/* Email */}
             <Animated.View style={[styles.fieldWrap, makeFieldAnimatedStyle(emailFocus)]}>
               <Animated.View style={[styles.fieldGlow, makeGlowAnimatedStyle(emailFocus)]} />
@@ -366,10 +296,7 @@ export default function LoginScreen() {
                   style={styles.input}
                   placeholder="Email address"
                   value={email}
-                  onChangeText={(t) => {
-                    setEmail(t);
-                    if (error) setError(null);
-                  }}
+                  onChangeText={setEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   placeholderTextColor="#9CA3AF"
@@ -392,10 +319,7 @@ export default function LoginScreen() {
                   style={styles.input}
                   placeholder="Password"
                   value={password}
-                  onChangeText={(t) => {
-                    setPassword(t);
-                    if (error) setError(null);
-                  }}
+                  onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   placeholderTextColor="#9CA3AF"
                   onFocus={() => animateFocus(passFocus, 1)}
@@ -406,8 +330,15 @@ export default function LoginScreen() {
                     if (!loading) void handleSignIn();
                   }}
                 />
-                <Pressable onPress={() => setShowPassword((s) => !s)} style={styles.trailingIcon} hitSlop={10}>
-                  {showPassword ? <EyeOff size={18} color="#6B7280" /> : <Eye size={18} color="#6B7280" />}
+                <Pressable
+                  onPress={() => setShowPassword((s) => !s)}
+                  style={styles.trailingIcon}
+                  hitSlop={10}>
+                  {showPassword ? (
+                    <EyeOff size={18} color="#6B7280" />
+                  ) : (
+                    <Eye size={18} color="#6B7280" />
+                  )}
                 </Pressable>
               </View>
 
@@ -421,6 +352,7 @@ export default function LoginScreen() {
               </View>
             </Animated.View>
 
+            {/* CTA */}
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
               <Pressable
                 onPress={handleSignIn}
@@ -432,14 +364,15 @@ export default function LoginScreen() {
                   pressed && canSubmit ? styles.buttonPressed : null,
                   !canSubmit ? styles.buttonDisabled : null,
                 ]}>
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign in</Text>}
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.buttonText}>Sign in</Text>
+                )}
               </Pressable>
             </Animated.View>
 
-            <Pressable onPress={handleGuest} style={styles.ghostBtn} hitSlop={8}>
-              <Text style={styles.ghostText}>Continue as guest</Text>
-            </Pressable>
-
+            {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>New here? </Text>
               <Link href="/(auth)/signup" asChild>
@@ -464,6 +397,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
 
+  // Background
   bg: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#F9FAFB',
@@ -527,6 +461,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
 
+  // Card
   card: {
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderWidth: 1,
@@ -554,65 +489,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  socialRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  socialBtn: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  socialBtnPressed: {
-    opacity: 0.92,
-  },
-  socialBtnDisabled: {
-    opacity: 0.6,
-  },
-  socialText: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '800',
-  },
-  googleBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 999,
-    backgroundColor: '#EEF2F7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleBadgeText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#111827',
-  },
-
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 14,
-    marginBottom: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '800',
-  },
-
+  // Fields
   fieldWrap: {
     marginBottom: 14,
   },
@@ -661,9 +538,10 @@ const styles = StyleSheet.create({
   metaLink: {
     fontSize: 12,
     color: '#0A84FF',
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
+  // Button
   button: {
     backgroundColor: '#0A84FF',
     borderRadius: 14,
@@ -682,36 +560,24 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.2,
-  },
-
-  ghostBtn: {
-    marginTop: 10,
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  ghostText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#111827',
-    opacity: 0.75,
   },
 
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 14,
     paddingBottom: 2,
   },
   footerText: {
-    fontSize: 14,
+    fontSize: 14, 
     color: '#6B7280',
   },
   link: {
     fontSize: 14,
     color: '#0A84FF',
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });
