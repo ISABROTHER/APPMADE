@@ -1,12 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Home, Send, User } from 'lucide-react-native';
 
@@ -70,7 +64,6 @@ function ModernTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={typeof label === 'string' ? label : route.name}
             >
-              {/* Active highlight capsule behind icon (matches screenshot format) */}
               <View style={[styles.iconCapsule, focused ? styles.iconCapsuleActive : styles.iconCapsuleIdle]}>
                 {icon}
               </View>
@@ -126,7 +119,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: 'transparent',
     borderTopWidth: 0,
-    height: 78, // matches the screenshot “tall enough but not bulky”
+    height: 78,
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 14 : 12,
   },
@@ -136,8 +129,6 @@ const styles = StyleSheet.create({
     backgroundColor: BAR_BG,
     borderTopWidth: 1,
     borderTopColor: BAR_BORDER,
-
-    // subtle lift like modern apps
     shadowColor: '#0B1220',
     shadowOpacity: 0.06,
     shadowRadius: 18,
@@ -160,7 +151,6 @@ const styles = StyleSheet.create({
     opacity: 0.92,
   },
 
-  // Icon capsule sizing is the key to screenshot-like spacing
   iconCapsule: {
     width: 46,
     height: 32,
@@ -180,10 +170,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
 
+  // Apple-like: small + regular weight
   label: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    letterSpacing: 0.1,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0,
   },
   labelActive: {
     color: GREEN,
