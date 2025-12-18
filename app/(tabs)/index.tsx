@@ -1,428 +1,344 @@
-import { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
+  Pressable,
+  ScrollView,
   StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
+  Text,
+  View,
 } from 'react-native';
-import { Plus, Trash2, Edit2, Check } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Plus, Search, ArrowRight } from 'lucide-react-native';
 
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  created_at: string;
+const BG = '#F6E7E2';
+const HEADER = '#5A0E0E';
+const CARD = '#FFFFFF';
+const TEXT = '#0B1220';
+const MUTED = '#6B7280';
+const ACCENT = '#7A0B0B';
+
+type ParcelFilter = 'all' | 'toMe' | 'fromMe';
+
+function FilterChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chip,
+        active ? styles.chipActive : styles.chipIdle,
+        pressed ? styles.pressed : null,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Text style={[styles.chipText, active ? styles.chipTextActive : styles.chipTextIdle]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
 }
 
-export default function TasksScreen() {
-  const { user } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [error, setError] = useState<string | null>(null);
+export default function HomeScreen() {
+  const [filter, setFilter] = useState<ParcelFilter>('all');
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTasks(data || []);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openModal = (task?: Task) => {
-    if (task) {
-      setEditingTask(task);
-      setTitle(task.title);
-      setDescription(task.description);
-    } else {
-      setEditingTask(null);
-      setTitle('');
-      setDescription('');
-    }
-    setModalVisible(true);
-  };
-
-  const closeModal = () => {
-    setModalVisible(false);
-    setEditingTask(null);
-    setTitle('');
-    setDescription('');
-  };
-
-  const saveTask = async () => {
-    if (!title.trim()) return;
-
-    try {
-      if (editingTask) {
-        const { error } = await supabase
-          .from('tasks')
-          .update({ title, description, updated_at: new Date().toISOString() })
-          .eq('id', editingTask.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('tasks')
-          .insert([{ title, description, user_id: user?.id }]);
-
-        if (error) throw error;
-      }
-
-      closeModal();
-      fetchTasks();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const toggleTask = async (task: Task) => {
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ completed: !task.completed })
-        .eq('id', task.id);
-
-      if (error) throw error;
-      fetchTasks();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const deleteTask = async (id: string) => {
-    try {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
-
-      if (error) throw error;
-      fetchTasks();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const renderTask = ({ item }: { item: Task }) => (
-    <View style={styles.taskItem}>
-      <TouchableOpacity
-        style={styles.taskContent}
-        onPress={() => toggleTask(item)}>
-        <View style={[styles.checkbox, item.completed && styles.checkboxChecked]}>
-          {item.completed && <Check size={16} color="#FFFFFF" />}
-        </View>
-        <View style={styles.taskText}>
-          <Text style={[styles.taskTitle, item.completed && styles.taskTitleCompleted]}>
-            {item.title}
-          </Text>
-          {item.description ? (
-            <Text style={styles.taskDescription}>{item.description}</Text>
-          ) : null}
-        </View>
-      </TouchableOpacity>
-      <View style={styles.taskActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openModal(item)}>
-          <Edit2 size={20} color="#007AFF" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => deleteTask(item.id)}>
-          <Trash2 size={20} color="#FF3B30" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  const filterLabel = useMemo(() => {
+    if (filter === 'all') return 'All';
+    if (filter === 'toMe') return 'To me';
+    return 'From me';
+  }, [filter]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safe}>
+      {/* Top header (like screenshot) */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Tasks</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
-          <Plus size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>My parcels</Text>
+
+          <Pressable
+            onPress={() => {}}
+            style={({ pressed }) => [styles.addBtn, pressed ? styles.pressed : null]}
+            accessibilityRole="button"
+            accessibilityLabel="Add parcel"
+          >
+            <Text style={styles.addText}>Add</Text>
+            <View style={styles.addIconWrap}>
+              <Plus size={16} color="#FFFFFF" />
+            </View>
+          </Pressable>
+        </View>
+
+        {/* Filter row: Search + All + To me + From me */}
+        <View style={styles.filtersRow}>
+          <Pressable
+            onPress={() => {}}
+            style={({ pressed }) => [styles.searchChip, pressed ? styles.pressed : null]}
+            accessibilityRole="button"
+            accessibilityLabel="Search parcels"
+          >
+            <Search size={18} color="#FFFFFF" />
+            <Text style={styles.searchText}>Search</Text>
+          </Pressable>
+
+          <FilterChip label="All" active={filter === 'all'} onPress={() => setFilter('all')} />
+          <FilterChip label="To me" active={filter === 'toMe'} onPress={() => setFilter('toMe')} />
+          <FilterChip label="From me" active={filter === 'fromMe'} onPress={() => setFilter('fromMe')} />
+        </View>
       </View>
 
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {tasks.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No tasks yet</Text>
-          <Text style={styles.emptySubtext}>Tap the + button to create your first task</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={tasks}
-          renderItem={renderTask}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
-
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={closeModal}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingTask ? 'Edit Task' : 'New Task'}
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Task title"
-              value={title}
-              onChangeText={setTitle}
-              placeholderTextColor="#8E8E93"
-            />
-
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Description (optional)"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              placeholderTextColor="#8E8E93"
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.button, styles.buttonSecondary]}
-                onPress={closeModal}>
-                <Text style={styles.buttonSecondaryText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.buttonPrimary]}
-                onPress={saveTask}>
-                <Text style={styles.buttonPrimaryText}>
-                  {editingTask ? 'Update' : 'Create'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Empty state card */}
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyMarks}>
+            <View style={styles.mark} />
+            <View style={[styles.mark, styles.mark2]} />
+            <View style={[styles.mark, styles.mark3]} />
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+
+          <Text style={styles.emptyTitle}>Can't find any parcels on the way</Text>
+          <Text style={styles.emptySub}>
+            You can easily add parcels yourself if you have a parcel underway that is not listed.
+          </Text>
+
+          <Pressable
+            onPress={() => {}}
+            style={({ pressed }) => [styles.addParcelBtn, pressed ? styles.pressed : null]}
+            accessibilityRole="button"
+            accessibilityLabel="Add parcel"
+          >
+            <Text style={styles.addParcelText}>+ Add parcel</Text>
+          </Pressable>
+
+          <Text style={styles.smallHint}>Filter: {filterLabel}</Text>
+        </View>
+
+        {/* Archived parcels */}
+        <Pressable
+          onPress={() => {}}
+          style={({ pressed }) => [styles.archived, pressed ? styles.pressed : null]}
+          accessibilityRole="button"
+          accessibilityLabel="Archived parcels"
+        >
+          <Text style={styles.archivedText}>Archived parcels</Text>
+          <ArrowRight size={18} color={ACCENT} />
+        </Pressable>
+
+        {/* Placeholder section title (you can build “Send” cards later) */}
+        <Text style={styles.sectionTitle}>Send</Text>
+
+        <View style={styles.gridRow}>
+          <View style={styles.gridCard}>
+            <View style={styles.illustrationCircle} />
+            <Text style={styles.gridTitle}>Letter in Norway</Text>
+            <Text style={styles.gridSub}>Up to 350 g</Text>
+            <Text style={styles.gridPrice}>From 25 kr</Text>
+          </View>
+
+          <View style={styles.gridCard}>
+            <View style={styles.illustrationCircle} />
+            <Text style={styles.gridTitle}>Parcel in Norway</Text>
+            <Text style={styles.gridSub}>Up to 35 kg</Text>
+            <Text style={styles.gridPrice}>From 73 kr</Text>
+          </View>
+        </View>
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-  },
+  safe: { flex: 1, backgroundColor: BG },
+
   header: {
+    backgroundColor: HEADER,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 14,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 44,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    paddingTop: 10,
+  },
+
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  addText: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
+  addIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  filtersRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+
+  searchChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.00)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.85)',
+  },
+  searchText: { color: '#FFFFFF', fontSize: 18, fontWeight: '900' },
+
+  chip: {
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  chipIdle: {
+    backgroundColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.85)',
+  },
+  chipActive: {
+    backgroundColor: '#F7E7E2',
+    borderColor: '#F7E7E2',
+  },
+  chipText: { fontSize: 18, fontWeight: '900' },
+  chipTextIdle: { color: '#FFFFFF' },
+  chipTextActive: { color: HEADER },
+
+  scroll: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
+
+  emptyCard: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 2,
+  },
+  emptyMarks: {
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  mark: {
+    width: 8,
+    height: 18,
+    borderRadius: 10,
+    backgroundColor: ACCENT,
+    transform: [{ rotateZ: '-18deg' }],
+  },
+  mark2: { height: 14, opacity: 0.85, transform: [{ rotateZ: '0deg' }] },
+  mark3: { height: 18, opacity: 0.75, transform: [{ rotateZ: '18deg' }] },
+
+  emptyTitle: {
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '900',
+    color: TEXT,
+    marginTop: 6,
+  },
+  emptySub: {
+    textAlign: 'center',
+    marginTop: 8,
+    fontSize: 15,
+    fontWeight: '700',
+    color: MUTED,
+    lineHeight: 20,
+  },
+  addParcelBtn: {
+    alignSelf: 'center',
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  addParcelText: {
+    color: '#D12B2B',
+    fontWeight: '900',
+    fontSize: 18,
+  },
+  smallHint: {
+    textAlign: 'center',
+    marginTop: 8,
+    color: 'rgba(107,114,128,0.85)',
+    fontWeight: '700',
+    fontSize: 12.5,
+  },
+
+  archived: {
+    marginTop: 14,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(122,11,11,0.25)',
+    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
   },
-  headerTitle: {
+  archivedText: { fontSize: 18, fontWeight: '900', color: HEADER },
+
+  sectionTitle: {
+    marginTop: 18,
     fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
+    fontWeight: '900',
+    color: TEXT,
   },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    margin: 16,
-    padding: 12,
-    backgroundColor: '#FFE5E5',
-    borderRadius: 8,
-  },
-  errorText: {
-    color: '#FF3B30',
-    fontSize: 14,
-  },
-  emptyContainer: {
+
+  gridRow: { flexDirection: 'row', gap: 14, marginTop: 12 },
+  gridCard: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 16,
-    color: '#AEAEB2',
-    textAlign: 'center',
-  },
-  listContent: {
-    padding: 16,
-  },
-  taskItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  taskContent: {
-    flex: 1,
-    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.70)',
+    borderRadius: 18,
+    padding: 14,
     alignItems: 'center',
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+  illustrationCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 96,
+    backgroundColor: 'rgba(209,43,43,0.10)',
+    marginBottom: 10,
   },
-  checkboxChecked: {
-    backgroundColor: '#007AFF',
-  },
-  taskText: {
-    flex: 1,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  taskTitleCompleted: {
-    textDecorationLine: 'line-through',
-    color: '#8E8E93',
-  },
-  taskDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  taskActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    minHeight: 400,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 24,
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  button: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonPrimary: {
-    backgroundColor: '#007AFF',
-  },
-  buttonPrimaryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonSecondary: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  buttonSecondaryText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  gridTitle: { fontSize: 18, fontWeight: '900', color: TEXT, textAlign: 'center' },
+  gridSub: { marginTop: 6, fontSize: 14.5, fontWeight: '700', color: MUTED, textAlign: 'center' },
+  gridPrice: { marginTop: 8, fontSize: 16, fontWeight: '900', color: '#D12B2B' },
+
+  pressed: { opacity: 0.92 },
 });
