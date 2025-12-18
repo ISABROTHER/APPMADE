@@ -9,8 +9,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, router } from 'expo-router';
-import { ChevronRight, LogOut, Mail, ShieldCheck } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { LogOut, Mail, ShieldCheck } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
 const GREEN = '#34B67A';
@@ -244,28 +244,6 @@ function DigitalCard({
   );
 }
 
-function RowLink({
-  title,
-  subtitle,
-  href,
-}: {
-  title: string;
-  subtitle: string;
-  href: string;
-}) {
-  return (
-    <Link href={href} asChild>
-      <Pressable style={({ pressed }) => [styles.rowLink, pressed ? styles.pressed : null]}>
-        <View style={styles.rowLinkText}>
-          <Text style={styles.rowTitle}>{title}</Text>
-          <Text style={styles.rowSub}>{subtitle}</Text>
-        </View>
-        <ChevronRight size={18} color="rgba(11,18,32,0.45)" />
-      </Pressable>
-    </Link>
-  );
-}
-
 export default function ProfileIndexScreen() {
   const { signOut } = useAuth();
 
@@ -294,24 +272,6 @@ export default function ProfileIndexScreen() {
         <DigitalCard email={null} userId={null} avatarUrl={null} />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>More</Text>
-
-          <RowLink
-            title="My Card"
-            subtitle="Open your digital card in full view"
-            href="/(tabs)/profile/card"
-          />
-          <RowLink
-            title="Settings"
-            subtitle="Preferences and account controls"
-            href="/(tabs)/profile/settings"
-          />
-          <RowLink
-            title="Security"
-            subtitle="Password and sign-in security"
-            href="/(tabs)/profile/security"
-          />
-
           <Pressable
             style={({ pressed }) => [styles.signOutButton, pressed ? styles.pressed : null]}
             onPress={handleSignOut}
@@ -486,22 +446,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 2,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '900', color: TEXT, marginBottom: 10 },
-
-  rowLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
-    marginBottom: 10,
-  },
-  rowLinkText: { flex: 1, paddingRight: 10 },
-  rowTitle: { fontSize: 14.5, fontWeight: '900', color: TEXT },
-  rowSub: { marginTop: 3, fontSize: 12.2, fontWeight: '800', color: 'rgba(107,114,128,0.95)' },
 
   signOutButton: {
     flexDirection: 'row',
