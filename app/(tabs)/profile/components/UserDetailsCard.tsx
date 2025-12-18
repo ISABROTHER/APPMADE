@@ -6,11 +6,10 @@ import { router } from 'expo-router';
 const TEXT = '#111827';
 const MUTED = '#6B7280';
 
-// Card
 const CARD_BG = '#FFFFFF';
 const CARD_BORDER = 'rgba(0,0,0,0.08)';
 
-// Light green info box (Apple-soft)
+// light green text box
 const INFO_BG = 'rgba(52, 182, 122, 0.15)';
 const INFO_TEXT = '#1F7A4E';
 
@@ -81,7 +80,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Apple-style primary text (Title 3 feel)
+  // iOS primary list title feel
   nameText: {
     fontSize: 17,
     fontWeight: '600',
@@ -89,7 +88,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  // Apple-style secondary container
+  // light green text box
   infoBox: {
     alignSelf: 'flex-start',
     backgroundColor: INFO_BG,
@@ -98,7 +97,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
-  // Apple-style footnote text
+  // iOS secondary text feel
   infoText: {
     fontSize: 13,
     fontWeight: '400',
