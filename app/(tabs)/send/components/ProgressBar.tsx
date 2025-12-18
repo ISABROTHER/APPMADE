@@ -7,15 +7,16 @@ type ProgressBarProps = {
 };
 
 export const ProgressBar = ({ currentStep, totalSteps }: ProgressBarProps) => {
-  const progress = (currentStep / totalSteps) * 100;
+  const progress = Math.max(0, Math.min(1, currentStep / totalSteps));
 
   return (
     <View style={styles.container}>
       <Text style={styles.stepText}>
         Step {currentStep} of {totalSteps}
       </Text>
+
       <View style={styles.barContainer}>
-        <View style={[styles.barFill, { width: `${progress}%` }]} />
+        <View style={[styles.barFill, { width: `${progress * 100}%` }]} />
       </View>
     </View>
   );
@@ -23,18 +24,19 @@ export const ProgressBar = ({ currentStep, totalSteps }: ProgressBarProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   stepText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#6B7280',
     marginBottom: 8,
   },
   barContainer: {
     height: 4,
-    backgroundColor: 'rgba(52,182,122,0.15)',
+    backgroundColor: 'rgba(52,182,122,0.16)',
     borderRadius: 4,
     overflow: 'hidden',
   },
