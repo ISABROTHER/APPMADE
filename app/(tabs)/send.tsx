@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { MapPin, Globe, ChevronRight } from 'lucide-react-native';
 
 const GREEN = '#34B67A';
@@ -16,14 +17,14 @@ export default function SendScreen() {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <Pressable style={styles.optionCard}>
+        <Pressable style={styles.optionCard} onPress={() => router.push('/(tabs)/send-parcel')}>
           <View style={styles.iconContainer}>
             <MapPin size={32} color={GREEN} />
           </View>
           <View style={styles.optionContent}>
-            <Text style={styles.optionTitle}>Send Parcel in Ghana</Text>
+            <Text style={styles.optionTitle}>Parcel in Norway</Text>
             <Text style={styles.optionDescription}>
-              Domestic delivery within Ghana
+              Domestic delivery within Norway
             </Text>
           </View>
           <ChevronRight size={24} color={MUTED} />
@@ -34,7 +35,7 @@ export default function SendScreen() {
             <Globe size={32} color={GREEN} />
           </View>
           <View style={styles.optionContent}>
-            <Text style={styles.optionTitle}>Send Parcel Outside Ghana</Text>
+            <Text style={styles.optionTitle}>Send Parcel Outside Norway</Text>
             <Text style={styles.optionDescription}>
               International delivery worldwide
             </Text>
