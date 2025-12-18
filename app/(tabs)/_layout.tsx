@@ -1,86 +1,26 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 import { Tabs } from 'expo-router';
 import {
-  Animated,
-  Easing,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  Vibration,
   View,
 } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CheckSquare, User } from 'lucide-react-native';
 
 const GREEN = '#34B67A';
-const TEXT = '#0B1220';
-const MUTED = '#6B7280';
+const INACTIVE = '#8E8E93';
+const BAR_BG = 'rgba(255,255,255,0.92)';
+const BAR_BORDER = 'rgba(229,229,234,0.9)';
 
-// Glass palette to match your login screen
-const GLASS_BG = 'rgba(255,255,255,0.78)';
-const GLASS_BORDER = 'rgba(255,255,255,0.55)';
-const GLASS_HIGHLIGHT = 'rgba(255,255,255,0.22)';
-const SHADOW = '#0B1220';
-
-function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const [width, setWidth] = useState(0);
-  const tabCount = state.routes.length;
-  const itemW = width > 0 ? width / Math.max(1, tabCount) : 0;
-
-  // Sliding pill behind the active tab
-  const pillX = useRef(new Animated.Value(0)).current;
-
-  // Press animation (micro-feedback)
-  const pressScale = useRef(state.routes.map(() => new Animated.Value(1))).current;
-
-  useEffect(() => {
-    const nextX = itemW * state.index;
-    Animated.timing(pillX, {
-      toValue: nextX,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [itemW, pillX, state.index]);
-
-  const onLayout = (w: number) => {
-    setWidth(w);
-    // snap pill into correct position after layout
-    pillX.setValue(w > 0 ? (w / Math.max(1, tabCount)) * state.index : 0);
-  };
-
+function ModernTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   return (
-    <View
-      style={styles.tabBarWrap}
-      onLayout={(e) => onLayout(e.nativeEvent.layout.width)}
-      accessibilityRole="tablist"
-    >
-      {/* Glass base */}
-      <View pointerEvents="none" style={styles.glassBase} />
+    <View style={styles.tabBarWrap} accessibilityRole="tablist">
+      <View pointerEvents="none" style={styles.tabBarSurface} />
 
-      {/* Top highlight line for “real glass” */}
-      <View pointerEvents="none" style={styles.glassHighlight} />
-
-      {/* Active pill */}
-      {width > 0 && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.activePill,
-            {
-              width: itemW - 18,
-              transform: [{ translateX: pillX.interpolate({
-                inputRange: [0, Math.max(1, itemW * (tabCount - 1))],
-                outputRange: [9, 9 + Math.max(0, itemW * (tabCount - 1))],
-                extrapolate: 'clamp',
-              }) }],
-            },
-          ]}
-        />
-      )}
-
-      <View style={styles.itemsRow}>
+      <View style={styles.row}>
         {state.routes.map((route, index) => {
           const focused = state.index === index;
           const { options } = descriptors[route.key];
@@ -92,10 +32,12 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 ? options.title
                 : route.name;
 
+          const color = focused ? GREEN : INACTIVE;
+
           const icon =
             options.tabBarIcon?.({
               focused,
-              color: focused ? GREEN : MUTED,
+              color,
               size: 22,
             }) ?? null;
 
@@ -108,8 +50,6 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
             if (!focused && !event.defaultPrevented) {
               navigation.navigate(route.name);
-              // light tactile cue without extra dependencies
-              Vibration.vibrate(8);
             }
           };
 
@@ -120,48 +60,25 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             });
           };
 
-          const scale = pressScale[index];
-
-          const pressIn = () => {
-            Animated.timing(scale, {
-              toValue: 0.96,
-              duration: 110,
-              easing: Easing.out(Easing.quad),
-              useNativeDriver: true,
-            }).start();
-          };
-
-          const pressOut = () => {
-            Animated.timing(scale, {
-              toValue: 1,
-              duration: 130,
-              easing: Easing.out(Easing.quad),
-              useNativeDriver: true,
-            }).start();
-          };
-
           return (
-            <Animated.View key={route.key} style={[styles.itemWrap, { width: itemW || undefined, transform: [{ scale }] }]}>
-              <Pressable
-                onPress={onPress}
-                onLongPress={onLongPress}
-                onPressIn={pressIn}
-                onPressOut={pressOut}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: focused }}
-                accessibilityLabel={typeof label === 'string' ? label : route.name}
-                style={styles.itemBtn}
-                android_ripple={Platform.OS === 'android' ? { color: 'rgba(11,18,32,0.06)', borderless: false } : undefined}
-              >
-                <View style={[styles.iconWrap, focused ? styles.iconWrapFocused : null]}>
-                  {icon}
-                </View>
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              style={({ pressed }) => [styles.item, pressed ? styles.itemPressed : null]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={typeof label === 'string' ? label : route.name}
+            >
+              {/* Active highlight capsule behind icon (matches screenshot format) */}
+              <View style={[styles.iconCapsule, focused ? styles.iconCapsuleActive : styles.iconCapsuleIdle]}>
+                {icon}
+              </View>
 
-                <Text style={[styles.label, focused ? styles.labelFocused : styles.labelMuted]}>
-                  {typeof label === 'string' ? label : route.name}
-                </Text>
-              </Pressable>
-            </Animated.View>
+              <Text style={[styles.label, focused ? styles.labelActive : styles.labelIdle]}>
+                {typeof label === 'string' ? label : route.name}
+              </Text>
+            </Pressable>
           );
         })}
       </View>
@@ -170,19 +87,14 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
-  const screenOptions = useMemo(
-    () => ({
-      headerShown: false,
-      tabBarActiveTintColor: GREEN,
-      tabBarInactiveTintColor: MUTED,
-    }),
-    []
-  );
-
   return (
     <Tabs
-      screenOptions={screenOptions}
-      tabBar={(props) => <GlassTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: GREEN,
+        tabBarInactiveTintColor: INACTIVE,
+      }}
+      tabBar={(props) => <ModernTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"
@@ -207,79 +119,69 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: 'transparent',
     borderTopWidth: 0,
+    height: 78, // matches the screenshot “tall enough but not bulky”
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 12 : 10,
-    height: 70,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 12,
   },
 
-  glassBase: {
+  tabBarSurface: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: GLASS_BG,
+    backgroundColor: BAR_BG,
     borderTopWidth: 1,
-    borderTopColor: GLASS_BORDER,
-    shadowColor: SHADOW,
+    borderTopColor: BAR_BORDER,
+
+    // subtle lift like modern apps
+    shadowColor: '#0B1220',
     shadowOpacity: 0.06,
-    shadowRadius: 16,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: -10 },
     elevation: 10,
   },
 
-  glassHighlight: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 18,
-    backgroundColor: GLASS_HIGHLIGHT,
-  },
-
-  itemsRow: {
+  row: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
 
-  activePill: {
-    position: 'absolute',
-    top: 10,
-    bottom: 10,
-    borderRadius: 999,
-    backgroundColor: 'rgba(52,182,122,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(52,182,122,0.18)',
-  },
-
-  itemWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  itemBtn: {
+  item: {
     flex: 1,
-    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  itemPressed: {
+    opacity: 0.92,
+  },
 
-  iconWrap: {
+  // Icon capsule sizing is the key to screenshot-like spacing
+  iconCapsule: {
+    width: 46,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
-    transform: [{ translateY: 0 }],
   },
-  iconWrapFocused: {
-    transform: [{ translateY: -1.5 }],
+  iconCapsuleActive: {
+    backgroundColor: 'rgba(52,182,122,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,182,122,0.22)',
+  },
+  iconCapsuleIdle: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
 
   label: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
     letterSpacing: 0.1,
   },
-  labelFocused: {
+  labelActive: {
     color: GREEN,
   },
-  labelMuted: {
-    color: MUTED,
+  labelIdle: {
+    color: INACTIVE,
   },
 });
