@@ -1,44 +1,35 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Send, User } from 'lucide-react-native';
-import { useColorScheme } from 'react-native';
+import { CheckSquare, User } from 'lucide-react-native';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#8E8E93',
         tabBarStyle: {
-          backgroundColor: isDark ? '#1a1b2e' : '#ffffff',
-          borderTopColor: isDark ? '#2d2e4d' : '#e5e5e5',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E5EA',
         },
-        tabBarActiveTintColor: '#9d8df1',
-        tabBarInactiveTintColor: isDark ? '#6366f1' : '#94a3b8',
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="send"
-        options={{
-          title: 'Send',
-          tabBarIcon: ({ color, size }) => <Send size={size} color={color} />,
+          title: 'Tasks',
+          tabBarIcon: ({ size, color }) => (
+            <CheckSquare size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => (
+            <User size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
