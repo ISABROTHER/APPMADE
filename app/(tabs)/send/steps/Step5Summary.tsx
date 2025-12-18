@@ -11,7 +11,8 @@ type Step5SummaryProps = {
 };
 
 export const Step5Summary = ({ onComplete }: Step5SummaryProps) => {
-  const { selectedSize, selectedDeliveryMethod, sender, recipient, totalPrice } = useSendParcel();
+  const { parcel, route, handover, sender, recipient, totalPrice, basePrice, pickupFee } =
+    useSendParcel();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -27,19 +28,55 @@ export const Step5Summary = ({ onComplete }: Step5SummaryProps) => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <StepHeader title="Review and Confirm" subtitle="Check your details before paying" />
+        <StepHeader title="Review & Pay" subtitle="Check everything before paying" />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Parcel Details</Text>
+          <Text style={styles.sectionTitle}>Parcel</Text>
           <View style={styles.card}>
-            <InfoRow label="Size" value={selectedSize?.label || ''} />
-            <InfoRow label="Dimensions" value={selectedSize?.dimensions || ''} />
-            <InfoRow label="Max Weight" value={`${selectedSize?.maxWeight} kg`} />
+            <InfoRow label="Size" value={parcel?.size.toUpperCase() || ''} />
+            <InfoRow label="Weight" value={parcel?.weightRange || ''} />
+            {parcel?.category && (
+              <InfoRow label="Category" value={parcel.category} isLast={!parcel?.category} />
+            )}
+            {!parcel?.category && <View />}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Route</Text>
+          <View style={styles.card}>
             <InfoRow
-              label="Delivery Method"
-              value={selectedDeliveryMethod?.label || ''}
-              isLast
+              label="Origin"
+              value={`${route?.origin.cityTown}, ${route?.origin.region}`}
             />
+            {route?.origin.landmark && (
+              <InfoRow label="Origin Landmark" value={route.origin.landmark} />
+            )}
+            <InfoRow
+              label="Destination"
+              value={`${route?.destination.cityTown}, ${route?.destination.region}`}
+            />
+            {route?.destination.landmark && (
+              <InfoRow label="Dest. Landmark" value={route.destination.landmark} isLast />
+            )}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Handover</Text>
+          <View style={styles.card}>
+            <InfoRow
+              label="Method"
+              value={
+                handover?.method === 'DROPOFF' ? 'Drop-off at Agent' : 'Agent Picks Up'
+              }
+            />
+            {handover?.method === 'PICKUP' && handover.pickupDetails && (
+              <>
+                <InfoRow label="Pickup Location" value={handover.pickupDetails.landmark} />
+                <InfoRow label="Contact" value={handover.pickupDetails.phone} isLast />
+              </>
+            )}
           </View>
         </View>
 
@@ -47,13 +84,7 @@ export const Step5Summary = ({ onComplete }: Step5SummaryProps) => {
           <Text style={styles.sectionTitle}>Sender</Text>
           <View style={styles.card}>
             <InfoRow label="Name" value={sender?.name || ''} />
-            <InfoRow label="Phone" value={sender?.phone || ''} />
-            <InfoRow label="Email" value={sender?.email || ''} />
-            <InfoRow
-              label="Address"
-              value={`${sender?.address}, ${sender?.postalCode} ${sender?.city}`}
-              isLast
-            />
+            <InfoRow label="Phone" value={sender?.phone || ''} isLast />
           </View>
         </View>
 
@@ -62,32 +93,25 @@ export const Step5Summary = ({ onComplete }: Step5SummaryProps) => {
           <View style={styles.card}>
             <InfoRow label="Name" value={recipient?.name || ''} />
             <InfoRow label="Phone" value={recipient?.phone || ''} />
-            <InfoRow
-              label="Address"
-              value={`${recipient?.address}, ${recipient?.postalCode} ${recipient?.city}`}
-              isLast
-            />
+            {recipient?.landmark && (
+              <InfoRow label="Landmark" value={recipient.landmark} isLast />
+            )}
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment</Text>
           <View style={styles.card}>
-            <InfoRow label="Parcel" value={formatPrice(selectedSize?.price || 0)} />
-            {selectedDeliveryMethod && selectedDeliveryMethod.additionalCost > 0 && (
-              <InfoRow
-                label={selectedDeliveryMethod.label}
-                value={formatPrice(selectedDeliveryMethod.additionalCost)}
-              />
-            )}
+            <InfoRow label="Base Price" value={formatPrice(basePrice)} />
+            {pickupFee > 0 && <InfoRow label="Pickup Fee" value={formatPrice(pickupFee)} />}
             <View style={styles.divider} />
             <InfoRow label="Total" value={formatPrice(totalPrice)} highlight isLast />
           </View>
 
           <View style={styles.paymentMethod}>
             <Text style={styles.paymentLabel}>Payment Method</Text>
-            <View style={styles.vippsButton}>
-              <Text style={styles.vippsText}>Vipps</Text>
+            <View style={styles.mobileMoneyButton}>
+              <Text style={styles.mobileMoneyText}>Mobile Money</Text>
             </View>
           </View>
         </View>
@@ -101,9 +125,7 @@ export const Step5Summary = ({ onComplete }: Step5SummaryProps) => {
           ) : (
             <Square size={20} color="#6B7280" />
           )}
-          <Text style={styles.termsText}>
-            I accept Posten's terms and conditions
-          </Text>
+          <Text style={styles.termsText}>I accept the terms and conditions</Text>
         </Pressable>
       </ScrollView>
 
@@ -200,14 +222,14 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 8,
   },
-  vippsButton: {
-    backgroundColor: '#FF5B24',
+  mobileMoneyButton: {
+    backgroundColor: '#34B67A',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
   },
-  vippsText: {
+  mobileMoneyText: {
     fontSize: 15,
     fontWeight: '900',
     color: '#FFFFFF',

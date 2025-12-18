@@ -4,12 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SendParcelProvider, useSendParcel } from './send/context/SendParcelContext';
 import { ProgressBar } from './send/components/ProgressBar';
 import { Step1Size } from './send/steps/Step1Size';
-import { Step2DeliveryMethod } from './send/steps/Step2DeliveryMethod';
-import { Step3Sender } from './send/steps/Step3Sender';
-import { Step4Recipient } from './send/steps/Step4Recipient';
+import { Step2Route } from './send/steps/Step2Route';
+import { Step3HandoverMethod } from './send/steps/Step3HandoverMethod';
+import { Step4Parties } from './send/steps/Step4Parties';
 import { Step5Summary } from './send/steps/Step5Summary';
+import { Step6SecureHandover } from './send/steps/Step6SecureHandover';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 const SendParcelFlow = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -22,7 +23,6 @@ const SendParcelFlow = () => {
   };
 
   const handleComplete = () => {
-    reset();
     setCurrentStep(1);
   };
 
@@ -31,13 +31,15 @@ const SendParcelFlow = () => {
       case 1:
         return <Step1Size onNext={handleNext} />;
       case 2:
-        return <Step2DeliveryMethod onNext={handleNext} />;
+        return <Step2Route onNext={handleNext} />;
       case 3:
-        return <Step3Sender onNext={handleNext} />;
+        return <Step3HandoverMethod onNext={handleNext} />;
       case 4:
-        return <Step4Recipient onNext={handleNext} />;
+        return <Step4Parties onNext={handleNext} />;
       case 5:
-        return <Step5Summary onComplete={handleComplete} />;
+        return <Step5Summary onComplete={handleNext} />;
+      case 6:
+        return <Step6SecureHandover onComplete={handleComplete} />;
       default:
         return <Step1Size onNext={handleNext} />;
     }
