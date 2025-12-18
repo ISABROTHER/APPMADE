@@ -1,17 +1,15 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight, User } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 const TEXT = '#111827';
 const MUTED = '#6B7280';
+const BG = '#FFFFFF';
+const BORDER = 'rgba(60,60,67,0.18)';
 
-const CARD_BG = '#FFFFFF';
-const CARD_BORDER = 'rgba(0,0,0,0.08)';
-
-// light green text box
-const INFO_BG = 'rgba(52, 182, 122, 0.15)';
-const INFO_TEXT = '#1F7A4E';
+const GREEN_BG = 'rgba(52, 182, 122, 0.15)';
+const GREEN_TEXT = '#1F7A4E';
 
 interface UserDetailsCardProps {
   fullName: string | null;
@@ -20,57 +18,98 @@ interface UserDetailsCardProps {
   address: string | null;
 }
 
-export function UserDetailsCard({ fullName }: UserDetailsCardProps) {
-  const displayName = fullName || 'Your name';
+export function UserDetailsCard({ fullName, email, phone, address }: UserDetailsCardProps) {
+  const displayName = useMemo(() => (fullName && fullName.trim() ? fullName : 'Your account'), [fullName]);
+  const displayEmail = useMemo(() => (email && email.trim() ? email : ''), [email]);
+
+  const isIncomplete = useMemo(() => !phone || !address, [phone, address]);
+
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.timing(scale, { toValue: 0.985, duration: 90, useNativeDriver: true }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.timing(scale, { toValue: 1, duration: 140, useNativeDriver: true }).start();
+  };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push('/(tabs)/profile/edit-profile')}
-      activeOpacity={0.75}
-    >
-      <View style={styles.row}>
-        <View style={styles.iconWrap}>
-          <User size={22} color={INFO_TEXT} strokeWidth={2} />
-        </View>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        onPress={() => router.push('/(tabs)/profile/edit-profile')}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={({ pressed }) => [styles.card, pressed ? styles.cardPressed : null]}
+      >
+        {/* Accent / hero band */}
+        <View style={styles.heroBand} />
 
-        <View style={styles.textCol}>
-          <Text style={styles.nameText} numberOfLines={1}>
-            {displayName}
-          </Text>
-
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>Your information</Text>
+        {/* Content */}
+        <View style={styles.contentRow}>
+          <View style={styles.avatarWrap}>
+            <User size={22} color={GREEN_TEXT} strokeWidth={2} />
           </View>
-        </View>
 
-        <ChevronRight size={18} color={MUTED} strokeWidth={2} />
-      </View>
-    </TouchableOpacity>
+          <View style={styles.textCol}>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName}
+            </Text>
+
+            {displayEmail ? (
+              <Text style={styles.email} numberOfLines={1}>
+                {displayEmail}
+              </Text>
+            ) : null}
+
+            {/* Light green textbox (your requirement) */}
+            <View style={styles.greenBox}>
+              <Text style={styles.greenBoxText}>
+                {isIncomplete ? 'Complete your profile' : 'Your information'}
+              </Text>
+            </View>
+          </View>
+
+          <ChevronRight size={18} color={MUTED} strokeWidth={2} />
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: CARD_BG,
-    borderRadius: 14,
+    backgroundColor: BG,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 20,
+    borderColor: BORDER,
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
+  cardPressed: {
+    opacity: 0.96,
   },
 
-  row: {
+  heroBand: {
+    height: 54,
+    backgroundColor: GREEN_BG,
+  },
+
+  contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    marginTop: -18,
   },
 
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: INFO_BG,
+  avatarWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -80,27 +119,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // iOS primary list title feel
-  nameText: {
-    fontSize: 17,
+  // Apple-like hierarchy
+  name: {
+    fontSize: 20,
     fontWeight: '600',
     color: TEXT,
-    marginBottom: 6,
+    marginBottom: 2,
   },
 
-  // light green text box
-  infoBox: {
-    alignSelf: 'flex-start',
-    backgroundColor: INFO_BG,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-
-  // iOS secondary text feel
-  infoText: {
+  email: {
     fontSize: 13,
     fontWeight: '400',
-    color: INFO_TEXT,
+    color: MUTED,
+    marginBottom: 10,
+  },
+
+  // Light green text box
+  greenBox: {
+    alignSelf: 'flex-start',
+    backgroundColor: GREEN_BG,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+
+  greenBoxText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: GREEN_TEXT,
   },
 });
