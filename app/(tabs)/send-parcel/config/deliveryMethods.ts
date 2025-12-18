@@ -15,7 +15,7 @@ export const deliveryMethods: DeliveryMethod[] = [
   {
     id: 'mailbox',
     label: 'Send from own mailbox',
-    description: 'We'll pick up the parcel from your mailbox',
+    description: "We'll pick up the parcel from your mailbox",
     additionalCost: 9,
   },
 ];
