@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { ChevronLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -100,37 +100,24 @@ export default function LoginScreen() {
 
   const blobAStyle = {
     transform: [
-      {
-        translateX: floatA.interpolate({ inputRange: [0, 1], outputRange: [-18, 26] }),
-      },
-      {
-        translateY: floatA.interpolate({ inputRange: [0, 1], outputRange: [-10, 18] }),
-      },
-      {
-        scale: floatA.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }),
-      },
+      { translateX: floatA.interpolate({ inputRange: [0, 1], outputRange: [-18, 26] }) },
+      { translateY: floatA.interpolate({ inputRange: [0, 1], outputRange: [-10, 18] }) },
+      { scale: floatA.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) },
     ],
     opacity: floatA.interpolate({ inputRange: [0, 1], outputRange: [0.38, 0.56] }),
   } as const;
 
   const blobBStyle = {
     transform: [
-      {
-        translateX: floatB.interpolate({ inputRange: [0, 1], outputRange: [22, -22] }),
-      },
-      {
-        translateY: floatB.interpolate({ inputRange: [0, 1], outputRange: [18, -14] }),
-      },
-      {
-        scale: floatB.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] }),
-      },
+      { translateX: floatB.interpolate({ inputRange: [0, 1], outputRange: [22, -22] }) },
+      { translateY: floatB.interpolate({ inputRange: [0, 1], outputRange: [18, -14] }) },
+      { scale: floatB.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] }) },
     ],
     opacity: floatB.interpolate({ inputRange: [0, 1], outputRange: [0.30, 0.46] }),
   } as const;
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Soft glassy background blobs */}
       <View pointerEvents="none" style={styles.bg}>
         <Animated.View style={[styles.blob, styles.blobA, blobAStyle]} />
         <Animated.View style={[styles.blob, styles.blobB, blobBStyle]} />
@@ -145,9 +132,7 @@ export default function LoginScreen() {
               </Pressable>
 
               <Text style={styles.title}>Log in</Text>
-              <Text style={styles.subtitle}>
-                Enter your email and password to securely access{'\n'}your account and manage your services.
-              </Text>
+              <Text style={styles.subtitle}>Sign in to continue</Text>
 
               {error ? (
                 <View style={styles.errorBox}>
@@ -155,7 +140,6 @@ export default function LoginScreen() {
                 </View>
               ) : null}
 
-              {/* Email */}
               <View style={styles.inputPill}>
                 <View style={styles.leftIcon}>
                   <Mail size={18} color={MUTED} />
@@ -176,7 +160,6 @@ export default function LoginScreen() {
                 />
               </View>
 
-              {/* Password */}
               <View style={styles.inputPill}>
                 <View style={styles.leftIcon}>
                   <Lock size={18} color={MUTED} />
@@ -202,7 +185,6 @@ export default function LoginScreen() {
                 </Pressable>
               </View>
 
-              {/* Remember / Forgot */}
               <View style={styles.rowBetween}>
                 <Pressable onPress={() => setRememberMe((v) => !v)} style={styles.rememberRow} hitSlop={8}>
                   <View style={[styles.checkbox, rememberMe ? styles.checkboxOn : null]}>
@@ -211,14 +193,9 @@ export default function LoginScreen() {
                   <Text style={styles.rememberText}>Remember me</Text>
                 </Pressable>
 
-                <Link href="/(auth)/forgot-password" asChild>
-                  <Pressable hitSlop={8}>
-                    <Text style={styles.forgotText}>Forgot Password</Text>
-                  </Pressable>
-                </Link>
+                {/* Keep navigation simple: use back button for now */}
               </View>
 
-              {/* CTA */}
               <Pressable
                 onPress={handleSignIn}
                 disabled={loading}
@@ -230,39 +207,6 @@ export default function LoginScreen() {
                 {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryBtnText}>Login</Text>}
               </Pressable>
 
-              {/* Switch */}
-              <View style={styles.switchRow}>
-                <Text style={styles.switchText}>Don’t have an account? </Text>
-                <Link href="/(auth)/signup" asChild>
-                  <Pressable hitSlop={8}>
-                    <Text style={styles.switchLink}>Sign Up here</Text>
-                  </Pressable>
-                </Link>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.dividerWrap}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>Or Continue With Account</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Social */}
-              <View style={styles.socialRow}>
-                <Pressable onPress={() => setError('Facebook sign-in is not connected yet.')} style={[styles.socialBtn, styles.socialBtnFirst]} hitSlop={8}>
-                  <Text style={styles.socialLetter}>f</Text>
-                </Pressable>
-
-                <Pressable onPress={() => setError('Google sign-in is not connected yet.')} style={styles.socialBtn} hitSlop={8}>
-                  <Text style={styles.socialLetter}>G</Text>
-                </Pressable>
-
-                <Pressable onPress={() => setError('Apple sign-in is not connected yet.')} style={[styles.socialBtn, styles.socialBtnLast]} hitSlop={8}>
-                  <Text style={styles.socialLetter}></Text>
-                </Pressable>
-              </View>
-
-              {/* Glass edge highlight */}
               <View pointerEvents="none" style={styles.edgeHighlight} />
             </Animated.View>
           </View>
@@ -276,42 +220,14 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   safe: { flex: 1, backgroundColor: BG },
 
-  bg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: BG,
-  },
-  blob: {
-    position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 320,
-  },
-  blobA: {
-    top: -120,
-    left: -120,
-    backgroundColor: 'rgba(52,182,122,0.22)',
-  },
-  blobB: {
-    bottom: -140,
-    right: -120,
-    backgroundColor: 'rgba(59,130,246,0.18)',
-  },
+  bg: { ...StyleSheet.absoluteFillObject, backgroundColor: BG },
+  blob: { position: 'absolute', width: 320, height: 320, borderRadius: 320 },
+  blobA: { top: -120, left: -120, backgroundColor: 'rgba(52,182,122,0.22)' },
+  blobB: { bottom: -140, right: -120, backgroundColor: 'rgba(59,130,246,0.18)' },
 
-  scroll: {
-    paddingHorizontal: 18,
-    paddingTop: 26,
-    paddingBottom: 26,
-  },
+  scroll: { paddingHorizontal: 18, paddingTop: 26, paddingBottom: 26 },
+  stage: { width: '100%', maxWidth: 420, alignSelf: 'center', justifyContent: 'center', minHeight: 620 },
 
-  stage: {
-    width: '100%',
-    maxWidth: 420,
-    alignSelf: 'center',
-    justifyContent: 'center',
-    minHeight: 640,
-  },
-
-  // Glass card (no new dependencies; “frosted” look via translucency + border + shadow)
   glassCard: {
     backgroundColor: 'rgba(255,255,255,0.62)',
     borderRadius: 30,
@@ -321,13 +237,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.55)',
     shadowColor: '#0B1220',
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 16 },
     elevation: 3,
     overflow: 'hidden',
   },
-
   edgeHighlight: {
     position: 'absolute',
     top: 0,
@@ -351,22 +266,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  title: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: TEXT,
-    textAlign: 'center',
-    marginTop: 2,
-    letterSpacing: -0.2,
-  },
-  subtitle: {
-    marginTop: 8,
-    marginBottom: 18,
-    fontSize: 13,
-    lineHeight: 18,
-    color: 'rgba(107,114,128,0.95)',
-    textAlign: 'center',
-  },
+  title: { fontSize: 30, fontWeight: '900', color: TEXT, textAlign: 'center', marginTop: 2, letterSpacing: -0.2 },
+  subtitle: { marginTop: 6, marginBottom: 16, fontSize: 13, lineHeight: 18, color: 'rgba(107,114,128,0.95)', textAlign: 'center', fontWeight: '700' },
 
   errorBox: {
     backgroundColor: 'rgba(255,236,236,0.85)',
@@ -391,20 +292,9 @@ const styles = StyleSheet.create({
   },
   leftIcon: { width: 26, alignItems: 'flex-start' },
   rightIcon: { paddingLeft: 10, paddingVertical: 8 },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: TEXT,
-    paddingVertical: 10,
-  },
+  input: { flex: 1, fontSize: 14, color: TEXT, paddingVertical: 10 },
 
-  rowBetween: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    marginBottom: 14,
-  },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 14 },
 
   rememberRow: { flexDirection: 'row', alignItems: 'center' },
   checkbox: {
@@ -418,18 +308,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
   },
-  checkboxOn: {
-    borderColor: 'rgba(52,182,122,0.9)',
-    backgroundColor: 'rgba(232,247,240,0.8)',
-  },
-  checkboxDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 3,
-    backgroundColor: GREEN,
-  },
+  checkboxOn: { borderColor: 'rgba(52,182,122,0.9)', backgroundColor: 'rgba(232,247,240,0.8)' },
+  checkboxDot: { width: 8, height: 8, borderRadius: 3, backgroundColor: GREEN },
   rememberText: { fontSize: 12, color: TEXT, fontWeight: '800' },
-  forgotText: { fontSize: 12, color: TEXT, fontWeight: '900' },
 
   primaryBtn: {
     height: 52,
@@ -447,44 +328,4 @@ const styles = StyleSheet.create({
   primaryBtnPressed: { opacity: 0.92 },
   primaryBtnDisabled: { opacity: 0.65 },
   primaryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900', letterSpacing: 0.2 },
-
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 10,
-  },
-  switchText: { fontSize: 12.5, color: 'rgba(107,114,128,0.95)', fontWeight: '800' },
-  switchLink: { fontSize: 12.5, color: GREEN, fontWeight: '900' },
-
-  dividerWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 14,
-    marginBottom: 12,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(230,233,238,0.9)' },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 11.5,
-    color: 'rgba(107,114,128,0.95)',
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-
-  socialRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 6 },
-  socialBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.70)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.65)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  socialBtnFirst: { marginRight: 14 },
-  socialBtnLast: { marginLeft: 14 },
-  socialLetter: { fontSize: 16, fontWeight: '900', color: TEXT },
 });
