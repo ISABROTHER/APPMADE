@@ -36,11 +36,7 @@ export function ProfileRow({
       >
         <View style={styles.left}>
           <View style={[styles.iconWrap, destructive ? styles.iconWrapDestructive : null]}>
-            <Icon
-              size={18}
-              color={destructive ? '#FF3B30' : GREEN_TEXT}
-              strokeWidth={2}
-            />
+            <Icon size={18} color={destructive ? '#FF3B30' : GREEN_TEXT} strokeWidth={2} />
           </View>
 
           <Text style={[styles.label, destructive ? styles.labelDestructive : null]} numberOfLines={1}>
@@ -67,7 +63,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  // iOS press state (subtle)
+  // iOS-like highlight
   rowPressed: {
     backgroundColor: 'rgba(0,0,0,0.04)',
   },
