@@ -1,40 +1,55 @@
 import React from 'react';
-import { Redirect } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useAuth } from '@/contexts/AuthContext';
 
-function IndexInner() {
-  const { user, loading } = useAuth();
+export default function HomeScreen() {
+  const { user, signOut } = useAuth();
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#7A0B0B" />
-      </View>
-    );
-  }
-
-  if (user) {
-    return <Redirect href="/(tabs)" />;
-  }
-
-  return <Redirect href="/(auth)/login" />;
-}
-
-export default function Index() {
-  // Defensive wrap: guarantees IndexInner always has AuthProvider
   return (
-    <AuthProvider>
-      <IndexInner />
-    </AuthProvider>
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Welcome Home</Text>
+        <Text style={styles.subtitle}>{user?.email}</Text>
+
+        <Pressable style={styles.button} onPress={signOut}>
+          <Text style={styles.buttonText}>Sign Out</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    padding: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 32,
+  },
+  button: {
+    backgroundColor: '#7A0B0B',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
