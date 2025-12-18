@@ -1,50 +1,44 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-const TEXT = '#0B1220';
+const SECTION_LABEL = '#6D6D72'; // iOS grouped section header grey
+const CARD_BG = '#FFFFFF';
+const CARD_BORDER = 'rgba(60,60,67,0.18)';
 
 interface ProfileSectionCardProps {
   title?: string;
   children: React.ReactNode;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export function ProfileSectionCard({ title, children, style }: ProfileSectionCardProps) {
   return (
     <View style={[styles.wrapper, style]}>
-      {title && <Text style={styles.title}>{title}</Text>}
-      <View style={styles.card}>
-        {children}
-      </View>
+      {title ? <Text style={styles.title}>{title}</Text> : null}
+      <View style={styles.card}>{children}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 24,
+    marginBottom: 18,
   },
 
+  // iOS Settings section header style
   title: {
     fontSize: 13,
-    fontWeight: '800',
-    color: TEXT,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 10,
-    marginLeft: 4,
+    fontWeight: '400',
+    color: SECTION_LABEL,
+    marginBottom: 8,
+    marginLeft: 16,
   },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 16,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: CARD_BORDER,
     overflow: 'hidden',
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
   },
 });
