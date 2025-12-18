@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { CheckSquare, User } from 'lucide-react-native';
+import { Home, Send, User } from 'lucide-react-native';
 
 const GREEN = '#34B67A';
 const INACTIVE = '#8E8E93';
@@ -99,8 +99,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tasks',
-          tabBarIcon: ({ size, color }) => <CheckSquare size={size} color={color} />,
+          title: 'Home',
+          tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="send"
+        options={{
+          title: 'Send',
+          tabBarIcon: ({ size, color }) => <Send size={size} color={color} />,
         }}
       />
       <Tabs.Screen
