@@ -5,8 +5,14 @@ import { router } from 'expo-router';
 
 const TEXT = '#0B1220';
 const MUTED = '#6B7280';
-const BORDER = '#E5E7EB';
-const BG_CARD = '#FFFFFF';
+
+// Card
+const CARD_BG = '#FFFFFF';
+const CARD_BORDER = 'rgba(0,0,0,0.06)';
+
+// “Text box” (light green badge)
+const INFO_BG = 'rgba(52, 182, 122, 0.14)';
+const INFO_TEXT = '#1F7A4E';
 
 interface UserDetailsCardProps {
   fullName: string | null;
@@ -15,18 +21,8 @@ interface UserDetailsCardProps {
   address: string | null;
 }
 
-export function UserDetailsCard({
-  fullName,
-  email,
-  phone,
-  address,
-}: UserDetailsCardProps) {
+export function UserDetailsCard({ fullName }: UserDetailsCardProps) {
   const displayName = fullName || 'Add your name';
-  const displayEmail = email || 'Email not set';
-  const displayPhone = phone || 'Phone not added';
-  const displayAddress = address || 'Address not added';
-
-  const isIncomplete = !fullName || !phone || !address;
 
   return (
     <TouchableOpacity
@@ -34,143 +30,83 @@ export function UserDetailsCard({
       onPress={() => router.push('/(tabs)/profile/edit-profile')}
       activeOpacity={0.7}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.userIconContainer}>
-          <User size={24} color="#FFFFFF" />
+      <View style={styles.row}>
+        <View style={styles.iconWrap}>
+          <User size={22} color={INFO_TEXT} strokeWidth={2.5} />
         </View>
-        <View style={styles.headerContent}>
-          <Text style={styles.nameText}>{displayName}</Text>
-          <Text style={styles.emailText}>{displayEmail}</Text>
-        </View>
-        <ChevronRight size={20} color={MUTED} />
-      </View>
 
-      <View style={styles.divider} />
-
-      <View style={styles.detailsContainer}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Phone</Text>
-          <Text
-            style={[
-              styles.detailValue,
-              !phone && styles.detailValueMissing,
-            ]}
-          >
-            {displayPhone}
+        <View style={styles.textCol}>
+          <Text style={styles.nameText} numberOfLines={1}>
+            {displayName}
           </Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Address</Text>
-          <Text
-            style={[
-              styles.detailValue,
-              !address && styles.detailValueMissing,
-            ]}
-            numberOfLines={1}
-          >
-            {displayAddress}
-          </Text>
-        </View>
-      </View>
 
-      {isIncomplete && (
-        <View style={styles.incompleteIndicator}>
-          <Text style={styles.incompleteText}>Complete your profile</Text>
+          <View style={styles.infoPill}>
+            <Text style={styles.infoText}>Your information</Text>
+          </View>
         </View>
-      )}
+
+        <ChevronRight size={20} color={MUTED} strokeWidth={2.5} />
+      </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: BG_CARD,
-    borderRadius: 12,
-    marginBottom: 24,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
-    overflow: 'hidden',
+    borderColor: CARD_BORDER,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
 
-  cardHeader: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
     gap: 12,
   },
 
-  userIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: INFO_BG,
     alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
 
-  headerContent: {
+  textCol: {
     flex: 1,
+    justifyContent: 'center',
   },
 
   nameText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: TEXT,
-    marginBottom: 4,
+    letterSpacing: -0.2,
+    marginBottom: 6,
   },
 
-  emailText: {
+  infoPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: INFO_BG,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+
+  infoText: {
     fontSize: 13,
-    fontWeight: '500',
-    color: MUTED,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: BORDER,
-  },
-
-  detailsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-
-  detailRow: {
-    marginVertical: 6,
-  },
-
-  detailLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: MUTED,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 4,
-  },
-
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: TEXT,
-  },
-
-  detailValueMissing: {
-    color: '#EF4444',
-    fontStyle: 'italic',
-  },
-
-  incompleteIndicator: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: BORDER,
-  },
-
-  incompleteText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#B45309',
+    fontWeight: '700',
+    color: INFO_TEXT,
   },
 });
