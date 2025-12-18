@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   MapPin,
   Package,
@@ -15,15 +15,40 @@ import {
   LogOut,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { ProfileSectionCard } from './components/ProfileSectionCard';
 import { ProfileRow } from './components/ProfileRow';
+import { UserDetailsCard } from './components/UserDetailsCard';
 
 const BG = '#F5F7FA';
 const TEXT = '#0B1220';
 const MUTED = '#6B7280';
 
 export default function ProfileHomeScreen() {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserProfile();
+    }, [user?.id])
+  );
+
+  const loadUserProfile = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setUserProfile(data);
+    } catch (err) {
+      console.error('Load profile error:', err);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -45,6 +70,13 @@ export default function ProfileHomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <UserDetailsCard
+          fullName={userProfile?.full_name}
+          email={user?.email}
+          phone={userProfile?.phone}
+          address={userProfile?.address}
+        />
+
         <ProfileSectionCard title="Pickup preferences">
           <ProfileRow
             icon={MapPin}
