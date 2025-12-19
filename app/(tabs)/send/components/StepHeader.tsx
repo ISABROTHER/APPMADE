@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 type StepHeaderProps = {
   title: string;
   subtitle?: string;
 };
 
-export const StepHeader = ({ title, subtitle }: StepHeaderProps) => {
+export function StepHeader({ title, subtitle }: StepHeaderProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title} numberOfLines={2}>
@@ -19,15 +19,14 @@ export const StepHeader = ({ title, subtitle }: StepHeaderProps) => {
       ) : null}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
-  // Apple-like hierarchy
   title: {
     fontSize: 22,
     fontWeight: '600',
