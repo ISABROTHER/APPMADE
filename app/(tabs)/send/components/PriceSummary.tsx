@@ -3,16 +3,27 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSendParcel } from '../context/SendParcelContext';
 import { formatPrice } from '../config/pricing';
 
-export function PriceSummary() {
-  const { selectedSize, selectedDeliveryMethod, pickupFee, totalPrice, basePrice } = useSendParcel();
+const SIZE_LABELS: Record<string, string> = {
+  small: 'Small',
+  medium: 'Medium',
+  large: 'Large',
+};
 
-  if (!selectedSize) return null;
+export function PriceSummary() {
+  const { parcel, selectedDeliveryMethod, pickupFee, totalPrice, basePrice } = useSendParcel();
+
+  if (!parcel) return null;
 
   return (
     <View style={styles.card}>
       <View style={styles.row}>
         <Text style={styles.label}>Parcel</Text>
-        <Text style={styles.value}>{selectedSize.label}</Text>
+        <Text style={styles.value}>{SIZE_LABELS[parcel.size] ?? parcel.size}</Text>
+      </View>
+
+      <View style={styles.row}>
+        <Text style={styles.label}>Weight</Text>
+        <Text style={styles.value}>{parcel.weightRange}</Text>
       </View>
 
       {selectedDeliveryMethod && selectedDeliveryMethod.additionalCost > 0 ? (
@@ -24,7 +35,7 @@ export function PriceSummary() {
 
       {pickupFee > 0 ? (
         <View style={styles.row}>
-          <Text style={styles.label}>Pickup fee</Text>
+          <Text style={styles.label}>Extra fees</Text>
           <Text style={styles.value}>{formatPrice(pickupFee)}</Text>
         </View>
       ) : null}
