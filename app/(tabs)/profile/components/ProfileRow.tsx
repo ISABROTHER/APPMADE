@@ -7,8 +7,9 @@ const TEXT = '#111827';
 const CHEVRON = '#8E8E93';
 const SEPARATOR = 'rgba(60,60,67,0.18)';
 
-const GREEN_BG = 'rgba(52, 182, 122, 0.15)';
-const GREEN_TEXT = '#1F7A4E';
+// Match header family (green) for normal rows
+const GREEN_BG = 'rgba(15, 138, 95, 0.14)';
+const GREEN_ICON = '#0F8A5F';
 
 interface ProfileRowProps {
   icon: LucideIcon;
@@ -27,6 +28,9 @@ export function ProfileRow({
   isLast = false,
   destructive = false,
 }: ProfileRowProps) {
+  const iconBg = destructive ? 'rgba(255,59,48,0.10)' : GREEN_BG;
+  const iconColor = destructive ? '#FF3B30' : GREEN_ICON;
+
   return (
     <>
       <Pressable
@@ -35,8 +39,8 @@ export function ProfileRow({
         style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
       >
         <View style={styles.left}>
-          <View style={[styles.iconWrap, destructive ? styles.iconWrapDestructive : null]}>
-            <Icon size={18} color={destructive ? '#FF3B30' : GREEN_TEXT} strokeWidth={2} />
+          <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
+            <Icon size={18} color={iconColor} strokeWidth={2} />
           </View>
 
           <Text style={[styles.label, destructive ? styles.labelDestructive : null]} numberOfLines={1}>
@@ -54,8 +58,8 @@ export function ProfileRow({
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 50,
-    paddingHorizontal: 16,
+    minHeight: 52,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -63,10 +67,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  // iOS-like highlight
-  rowPressed: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
-  },
+  rowPressed: { backgroundColor: 'rgba(0,0,0,0.04)' },
 
   left: {
     flexDirection: 'row',
@@ -75,20 +76,14 @@ const styles = StyleSheet.create({
   },
 
   iconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: GREEN_BG,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
 
-  iconWrapDestructive: {
-    backgroundColor: 'rgba(255,59,48,0.10)',
-  },
-
-  // iOS default list text
   label: {
     fontSize: 17,
     fontWeight: '400',
@@ -96,13 +91,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  labelDestructive: {
-    color: '#FF3B30',
-  },
+  labelDestructive: { color: '#FF3B30' },
 
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: SEPARATOR,
-    marginLeft: 58, // aligns after icon
+    marginLeft: 58,
   },
 });
