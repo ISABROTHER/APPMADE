@@ -1,183 +1,131 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, Pressable } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { StepHeader } from '../components/StepHeader';
 import { PriceSummary } from '../components/PriceSummary';
 import { ContinueButton } from '../components/ContinueButton';
-import { useSendParcel, SenderInfo } from '../context/SendParcelContext';
-import {
-  validatePhoneNumber,
-  validateEmail,
-  validatePostalCode,
-  validateName,
-  validateAddress,
-} from '../utils/validators';
-import { formatPhoneNumber, formatPostalCode } from '../utils/formatters';
+import { useSendParcel, type SenderInfo } from '../context/SendParcelContext';
 
 type Step3SenderProps = {
   onNext: () => void;
+  onBack?: () => void;
 };
 
-export const Step3Sender = ({ onNext }: Step3SenderProps) => {
+export function Step3Sender({ onNext, onBack }: Step3SenderProps) {
   const { sender, updateSender } = useSendParcel();
 
-  const [phone, setPhone] = useState(sender?.phone || '');
   const [name, setName] = useState(sender?.name || '');
-  const [address, setAddress] = useState(sender?.address || '');
-  const [postalCode, setPostalCode] = useState(sender?.postalCode || '');
-  const [city, setCity] = useState(sender?.city || '');
-  const [email, setEmail] = useState(sender?.email || '');
+  const [phone, setPhone] = useState(sender?.phone || '');
 
-  const isValid =
-    validatePhoneNumber(phone) &&
-    validateName(name) &&
-    validateAddress(address) &&
-    validatePostalCode(postalCode) &&
-    city.trim().length > 0 &&
-    validateEmail(email);
+  const isValid = useMemo(() => name.trim().length >= 2 && phone.trim().length >= 7, [name, phone]);
 
   const handleContinue = () => {
-    if (isValid) {
-      const senderInfo: SenderInfo = {
-        phone,
-        name,
-        address,
-        postalCode,
-        city,
-        email,
-      };
-      updateSender(senderInfo);
-      onNext();
-    }
+    if (!isValid) return;
+
+    const payload: SenderInfo = {
+      name: name.trim(),
+      phone: phone.trim(),
+    };
+
+    updateSender(payload);
+    onNext();
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <StepHeader title="Sender Information" subtitle="Enter your details" />
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        {onBack ? (
+          <Pressable onPress={onBack} style={({ pressed }) => [styles.backBtn, pressed ? styles.pressed : null]}>
+            <ChevronLeft size={20} color="#111827" strokeWidth={2} />
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+        ) : null}
 
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Phone number</Text>
+        <StepHeader title="Sender" subtitle="Enter the sender’s name and phone number." />
+
+        <View style={styles.card}>
+          <View style={styles.field}>
+            <Text style={styles.label}>Full name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="+47"
-              value={phone}
-              onChangeText={(text) => setPhone(formatPhoneNumber(text))}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Your name"
               value={name}
               onChangeText={setName}
-              autoComplete="name"
+              placeholder="e.g., Patrick Johnston"
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="words"
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Address</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Phone number *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Street address"
-              value={address}
-              onChangeText={setAddress}
-              autoComplete="street-address"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+233 XX XXX XXXX"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
             />
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Postal code</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0000"
-                value={postalCode}
-                onChangeText={(text) => setPostalCode(formatPostalCode(text))}
-                keyboardType="number-pad"
-                maxLength={4}
-                autoComplete="postal-code"
-              />
-            </View>
-
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>City</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="City"
-                value={city}
-                onChangeText={setCity}
-                autoComplete="off"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
+            <Text style={styles.hint}>We’ll use this to contact you about pickup or drop-off.</Text>
           </View>
         </View>
 
         <PriceSummary />
+        <View style={{ height: 10 }} />
       </ScrollView>
 
       <ContinueButton onPress={handleContinue} disabled={!isValid} />
     </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  form: {
-    paddingHorizontal: 18,
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0B1220',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0B1220',
-  },
-  row: {
+  container: { flex: 1 },
+  scroll: { flex: 1 },
+  content: { paddingBottom: 12 },
+
+  backBtn: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 2,
   },
-  halfWidth: {
-    flex: 1,
+  backText: { fontSize: 15, fontWeight: '500', color: '#111827' },
+
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    padding: 14,
   },
+
+  field: { marginBottom: 12 },
+  label: { fontSize: 13, fontWeight: '400', color: '#6B7280', marginBottom: 6 },
+
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 17,
+    fontWeight: '400',
+    color: '#111827',
+  },
+
+  hint: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+
+  pressed: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 10 },
 });
