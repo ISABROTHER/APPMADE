@@ -5,13 +5,12 @@ import { router } from 'expo-router';
 
 const TEXT = '#111827';
 const MUTED = '#6B7280';
-
 const CARD_BG = '#FFFFFF';
 const CARD_BORDER = 'rgba(60,60,67,0.18)';
 
-// Light red theme (soft, premium)
-const RED_BG = 'rgba(255, 59, 48, 0.12)'; // light red background
-const RED_TEXT = '#B42318'; // deep red text (readable)
+// Light red pill (your requirement)
+const RED_BG = 'rgba(255, 59, 48, 0.12)';
+const RED_TEXT = '#B42318';
 
 interface UserDetailsCardProps {
   fullName: string | null;
@@ -26,7 +25,6 @@ export function UserDetailsCard({ fullName, email, phone, address }: UserDetails
 
   const isIncomplete = useMemo(() => !phone || !address, [phone, address]);
 
-  // Premium press feedback (no dependency)
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () => {
@@ -46,8 +44,8 @@ export function UserDetailsCard({ fullName, email, phone, address }: UserDetails
         style={({ pressed }) => [styles.card, pressed ? styles.cardPressed : null]}
       >
         <View style={styles.row}>
-          <View style={styles.iconWrap}>
-            <User size={22} color={RED_TEXT} strokeWidth={2} />
+          <View style={styles.avatarWrap}>
+            <User size={20} color={RED_TEXT} strokeWidth={2} />
           </View>
 
           <View style={styles.textCol}>
@@ -56,16 +54,13 @@ export function UserDetailsCard({ fullName, email, phone, address }: UserDetails
             </Text>
 
             {displayEmail ? (
-              <Text style={styles.email} numberOfLines={1}>
+              <Text style={styles.sub} numberOfLines={1}>
                 {displayEmail}
               </Text>
             ) : null}
 
-            {/* Light red info box (your requirement) */}
-            <View style={styles.infoBox}>
-              <Text style={styles.infoText}>
-                {isIncomplete ? 'Complete your profile' : 'Your information'}
-              </Text>
+            <View style={styles.pill}>
+              <Text style={styles.pillText}>{isIncomplete ? 'Complete profile' : 'Your information'}</Text>
             </View>
           </View>
 
@@ -84,18 +79,22 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginBottom: 18,
+
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 2,
   },
-  cardPressed: {
-    opacity: 0.96,
-  },
+
+  cardPressed: { opacity: 0.96 },
 
   row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
 
-  iconWrap: {
+  avatarWrap: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -105,11 +104,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
 
-  textCol: {
-    flex: 1,
-  },
+  textCol: { flex: 1 },
 
-  // Apple-like hierarchy
   name: {
     fontSize: 17,
     fontWeight: '600',
@@ -117,15 +113,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
 
-  email: {
+  sub: {
     fontSize: 13,
     fontWeight: '400',
     color: MUTED,
     marginBottom: 10,
   },
 
-  // Light red box
-  infoBox: {
+  pill: {
     alignSelf: 'flex-start',
     backgroundColor: RED_BG,
     borderRadius: 10,
@@ -133,7 +128,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
 
-  infoText: {
+  pillText: {
     fontSize: 13,
     fontWeight: '500',
     color: RED_TEXT,
