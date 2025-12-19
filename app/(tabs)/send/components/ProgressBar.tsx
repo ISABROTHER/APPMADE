@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 type ProgressBarProps = {
   currentStep: number;
   totalSteps: number;
 };
 
-export const ProgressBar = ({ currentStep, totalSteps }: ProgressBarProps) => {
+export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
   const progress = Math.max(0, Math.min(1, currentStep / totalSteps));
 
   return (
@@ -15,18 +15,18 @@ export const ProgressBar = ({ currentStep, totalSteps }: ProgressBarProps) => {
         Step {currentStep} of {totalSteps}
       </Text>
 
-      <View style={styles.barContainer}>
-        <View style={[styles.barFill, { width: `${progress * 100}%` }]} />
+      <View style={styles.bar}>
+        <View style={[styles.fill, { width: `${progress * 100}%` }]} />
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   stepText: {
     fontSize: 13,
@@ -34,13 +34,13 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 8,
   },
-  barContainer: {
+  bar: {
     height: 4,
-    backgroundColor: 'rgba(52,182,122,0.16)',
     borderRadius: 4,
+    backgroundColor: 'rgba(52,182,122,0.16)',
     overflow: 'hidden',
   },
-  barFill: {
+  fill: {
     height: '100%',
     backgroundColor: '#34B67A',
     borderRadius: 4,
