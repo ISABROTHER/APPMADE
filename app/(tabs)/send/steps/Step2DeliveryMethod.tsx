@@ -1,38 +1,37 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ChevronLeft, Home, Truck } from 'lucide-react-native';
 import { StepHeader } from '../components/StepHeader';
 import { PriceSummary } from '../components/PriceSummary';
 import { ContinueButton } from '../components/ContinueButton';
 import { useSendParcel } from '../context/SendParcelContext';
-import { deliveryMethods, DeliveryMethod } from '../config/deliveryMethods';
-import { Truck, Home } from 'lucide-react-native';
+import { deliveryMethods, type DeliveryMethod } from '../config/deliveryMethods';
+import { formatPrice } from '../config/pricing';
 
 type Step2DeliveryMethodProps = {
   onNext: () => void;
+  onBack?: () => void;
 };
 
-export const Step2DeliveryMethod = ({ onNext }: Step2DeliveryMethodProps) => {
+export function Step2DeliveryMethod({ onNext, onBack }: Step2DeliveryMethodProps) {
   const { selectedDeliveryMethod, updateDeliveryMethod } = useSendParcel();
+
   const [localSelection, setLocalSelection] = useState<DeliveryMethod | null>(
-    selectedDeliveryMethod || deliveryMethods[0]
+    selectedDeliveryMethod || deliveryMethods[0] || null
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!selectedDeliveryMethod && deliveryMethods[0]) {
       updateDeliveryMethod(deliveryMethods[0]);
       setLocalSelection(deliveryMethods[0]);
     }
-  }, []);
+  }, [selectedDeliveryMethod, updateDeliveryMethod]);
 
-  const handleSelectMethod = (method: DeliveryMethod) => {
-    setLocalSelection(method);
-    updateDeliveryMethod(method);
-  };
+  const canContinue = useMemo(() => Boolean(localSelection), [localSelection]);
 
-  const handleContinue = () => {
-    if (localSelection) {
-      onNext();
-    }
+  const handleSelect = (m: DeliveryMethod) => {
+    setLocalSelection(m);
+    updateDeliveryMethod(m);
   };
 
   const getIcon = (methodId: string) => {
@@ -41,131 +40,159 @@ export const Step2DeliveryMethod = ({ onNext }: Step2DeliveryMethodProps) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <StepHeader
-          title="How the parcel is sent"
-          subtitle="Choose how you want to send your parcel"
-        />
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        {onBack ? (
+          <Pressable onPress={onBack} style={({ pressed }) => [styles.backBtn, pressed ? styles.pressed : null]}>
+            <ChevronLeft size={20} color="#111827" strokeWidth={2} />
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+        ) : null}
 
-        <View style={styles.optionsContainer}>
-          {deliveryMethods.map((method) => {
+        <StepHeader title="Delivery method" subtitle="Choose how you want to hand the parcel over." />
+
+        <View style={styles.card}>
+          {deliveryMethods.map((method, idx) => {
             const Icon = getIcon(method.id);
+            const selected = localSelection?.id === method.id;
+
             return (
-              <Pressable
-                key={method.id}
-                style={({ pressed }) => [
-                  styles.option,
-                  localSelection?.id === method.id && styles.optionSelected,
-                  pressed && styles.optionPressed,
-                ]}
-                onPress={() => handleSelectMethod(method)}
-              >
-                <View style={styles.optionIcon}>
-                  <Icon
-                    size={24}
-                    color={localSelection?.id === method.id ? '#34B67A' : '#6B7280'}
-                  />
-                </View>
-
-                <View style={styles.optionContent}>
-                  <View style={styles.optionHeader}>
-                    <Text style={styles.optionLabel}>{method.label}</Text>
-                    {method.additionalCost > 0 && (
-                      <Text style={styles.additionalCost}>+{method.additionalCost} kr</Text>
-                    )}
-                  </View>
-                  <Text style={styles.optionDescription}>{method.description}</Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.radioOuter,
-                    localSelection?.id === method.id && styles.radioOuterSelected,
+              <React.Fragment key={method.id}>
+                <Pressable
+                  onPress={() => handleSelect(method)}
+                  style={({ pressed }) => [
+                    styles.option,
+                    selected ? styles.optionSelected : null,
+                    pressed ? styles.optionPressed : null,
                   ]}
                 >
-                  {localSelection?.id === method.id && <View style={styles.radioInner} />}
-                </View>
-              </Pressable>
+                  <View style={[styles.iconWrap, selected ? styles.iconWrapSelected : null]}>
+                    <Icon size={20} color={selected ? '#1F7A4E' : '#6B7280'} strokeWidth={2} />
+                  </View>
+
+                  <View style={styles.optionBody}>
+                    <View style={styles.optionTopRow}>
+                      <Text style={styles.optionTitle}>{method.label}</Text>
+                      {method.additionalCost > 0 ? (
+                        <Text style={styles.optionPrice}>+ {formatPrice(method.additionalCost)}</Text>
+                      ) : (
+                        <Text style={styles.optionPriceMuted}>Included</Text>
+                      )}
+                    </View>
+                    <Text style={styles.optionDesc}>{method.description}</Text>
+                  </View>
+
+                  <View style={[styles.radioOuter, selected ? styles.radioOuterSelected : null]}>
+                    {selected ? <View style={styles.radioInner} /> : null}
+                  </View>
+                </Pressable>
+
+                {idx < deliveryMethods.length - 1 ? <View style={styles.sep} /> : null}
+              </React.Fragment>
             );
           })}
         </View>
 
         <PriceSummary />
+        <View style={{ height: 10 }} />
       </ScrollView>
 
-      <ContinueButton onPress={handleContinue} disabled={!localSelection} />
+      <ContinueButton onPress={onNext} disabled={!canContinue} />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  scroll: { flex: 1 },
+  content: { paddingBottom: 12 },
+
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 2,
   },
-  content: {
-    flex: 1,
+  backText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
   },
-  optionsContainer: {
-    paddingHorizontal: 18,
-    marginBottom: 20,
+
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    overflow: 'hidden',
   },
+
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.55)',
-    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
   optionSelected: {
-    borderColor: '#34B67A',
-    backgroundColor: 'rgba(52,182,122,0.05)',
+    backgroundColor: 'rgba(52,182,122,0.06)',
   },
   optionPressed: {
-    opacity: 0.9,
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
-  optionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+
+  iconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(52,182,122,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  optionContent: {
-    flex: 1,
+  iconWrapSelected: {
+    backgroundColor: 'rgba(52,182,122,0.18)',
   },
-  optionHeader: {
+
+  optionBody: { flex: 1 },
+  optionTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
     marginBottom: 4,
   },
-  optionLabel: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#0B1220',
+  optionTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#111827',
     flex: 1,
   },
-  additionalCost: {
+  optionPrice: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#34B67A',
+    fontWeight: '600',
+    color: '#1F7A4E',
   },
-  optionDescription: {
-    fontSize: 12,
-    fontWeight: '700',
+  optionPriceMuted: {
+    fontSize: 13,
+    fontWeight: '500',
     color: '#6B7280',
-    lineHeight: 16,
   },
+  optionDesc: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+
   radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: 'rgba(60,60,67,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
@@ -174,9 +201,17 @@ const styles = StyleSheet.create({
     borderColor: '#34B67A',
   },
   radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#34B67A',
   },
+
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(60,60,67,0.18)',
+    marginLeft: 60,
+  },
+
+  pressed: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 10 },
 });
