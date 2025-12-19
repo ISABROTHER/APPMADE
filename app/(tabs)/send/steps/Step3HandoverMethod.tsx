@@ -1,33 +1,34 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Home, Store } from 'lucide-react-native';
 import { StepHeader } from '../components/StepHeader';
 import { ContinueButton } from '../components/ContinueButton';
 import { PriceSummary } from '../components/PriceSummary';
-import { useSendParcel, Handover, PickupDetails } from '../context/SendParcelContext';
-import { Store, Home } from 'lucide-react-native';
+import { Handover, useSendParcel } from '../context/SendParcelContext';
 import { PICKUP_FEE, formatPrice } from '../config/pricing';
 
 type Step3HandoverMethodProps = {
   onNext: () => void;
 };
 
-export const Step3HandoverMethod = ({ onNext }: Step3HandoverMethodProps) => {
-  const { handover, updateHandover, route, basePrice, pickupFee } = useSendParcel();
+export function Step3HandoverMethod({ onNext }: Step3HandoverMethodProps) {
+  const { handover, updateHandover, route } = useSendParcel();
 
-  const [method, setMethod] = useState<'DROPOFF' | 'PICKUP'>(
-    handover?.method || 'DROPOFF'
-  );
-  const [pickupLandmark, setPickupLandmark] = useState(
-    handover?.pickupDetails?.landmark || ''
-  );
-  const [pickupPhone, setPickupPhone] = useState(
-    handover?.pickupDetails?.phone || ''
-  );
+  const [method, setMethod] = useState<'DROPOFF' | 'PICKUP'>(handover?.method || 'DROPOFF');
+  const [pickupLandmark, setPickupLandmark] = useState(handover?.pickupDetails?.landmark || '');
+  const [pickupPhone, setPickupPhone] = useState(handover?.pickupDetails?.phone || '');
   const [pickupTiming, setPickupTiming] = useState<'ASAP' | 'TODAY' | 'SCHEDULE'>(
     handover?.pickupDetails?.timing || 'ASAP'
   );
 
+  const canContinue = useMemo(() => {
+    if (method === 'DROPOFF') return true;
+    return Boolean(pickupLandmark && pickupPhone);
+  }, [method, pickupLandmark, pickupPhone]);
+
   const handleContinue = () => {
+    if (!canContinue) return;
+
     const handoverData: Handover = {
       method,
       pickupDetails:
@@ -39,76 +40,66 @@ export const Step3HandoverMethod = ({ onNext }: Step3HandoverMethodProps) => {
             }
           : undefined,
     };
+
     updateHandover(handoverData);
     onNext();
   };
 
-  const canContinue =
-    method === 'DROPOFF' ||
-    (method === 'PICKUP' && pickupLandmark && pickupPhone);
-
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <StepHeader
-          title="Handover Method"
-          subtitle="How will you give us the parcel?"
-        />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <StepHeader title="Handover method" subtitle="Drop-off at an agent or request agent pickup." />
 
-        <View style={styles.optionsContainer}>
+        <View style={styles.card}>
           <Pressable
-            style={[styles.option, method === 'DROPOFF' && styles.optionSelected]}
             onPress={() => setMethod('DROPOFF')}
+            style={({ pressed }) => [
+              styles.option,
+              method === 'DROPOFF' ? styles.optionSelected : null,
+              pressed ? styles.pressed : null,
+            ]}
           >
             <View style={styles.optionIcon}>
-              <Store
-                size={24}
-                color={method === 'DROPOFF' ? '#34B67A' : '#6B7280'}
-              />
+              <Store size={20} color={method === 'DROPOFF' ? '#1F7A4E' : '#6B7280'} strokeWidth={2} />
             </View>
-            <View style={styles.optionContent}>
-              <Text style={[styles.optionTitle, method === 'DROPOFF' && styles.titleSelected]}>
-                Drop-off at Agent
-              </Text>
-              <Text style={styles.optionDescription}>
-                You bring the parcel to a nearby agent point (default)
-              </Text>
-              <Text style={styles.optionPrice}>No extra fee</Text>
+
+            <View style={styles.optionBody}>
+              <Text style={styles.optionTitle}>Drop-off at agent</Text>
+              <Text style={styles.optionDesc}>Bring the parcel to a nearby agent point.</Text>
+              <Text style={styles.optionMeta}>No extra fee</Text>
             </View>
           </Pressable>
 
+          <View style={styles.sep} />
+
           <Pressable
-            style={[styles.option, method === 'PICKUP' && styles.optionSelected]}
             onPress={() => setMethod('PICKUP')}
+            style={({ pressed }) => [
+              styles.option,
+              method === 'PICKUP' ? styles.optionSelected : null,
+              pressed ? styles.pressed : null,
+            ]}
           >
             <View style={styles.optionIcon}>
-              <Home
-                size={24}
-                color={method === 'PICKUP' ? '#34B67A' : '#6B7280'}
-              />
+              <Home size={20} color={method === 'PICKUP' ? '#1F7A4E' : '#6B7280'} strokeWidth={2} />
             </View>
-            <View style={styles.optionContent}>
-              <Text style={[styles.optionTitle, method === 'PICKUP' && styles.titleSelected]}>
-                Agent Picks Up
-              </Text>
-              <Text style={styles.optionDescription}>
-                Agent comes to your location to collect the parcel
-              </Text>
-              <Text style={[styles.optionPrice, styles.feePrice]}>
-                + {formatPrice(PICKUP_FEE)}
-              </Text>
+
+            <View style={styles.optionBody}>
+              <Text style={styles.optionTitle}>Agent picks up</Text>
+              <Text style={styles.optionDesc}>Agent comes to your location to collect the parcel.</Text>
+              <Text style={[styles.optionMeta, styles.feeMeta]}>+ {formatPrice(PICKUP_FEE)}</Text>
             </View>
           </Pressable>
         </View>
 
-        {method === 'PICKUP' && (
-          <View style={styles.pickupDetailsCard}>
-            <Text style={styles.detailsTitle}>Pickup Details</Text>
+        {method === 'PICKUP' ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Pickup details</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Pickup Location/Landmark *</Text>
+            <View style={styles.field}>
+              <Text style={styles.label}>Pickup location / landmark *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.multiline]}
                 value={pickupLandmark}
                 onChangeText={setPickupLandmark}
                 placeholder={`e.g., Near ${route?.origin.cityTown || 'your area'}`}
@@ -118,8 +109,8 @@ export const Step3HandoverMethod = ({ onNext }: Step3HandoverMethodProps) => {
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Contact Phone *</Text>
+            <View style={styles.field}>
+              <Text style={styles.label}>Pickup phone *</Text>
               <TextInput
                 style={styles.input}
                 value={pickupPhone}
@@ -130,162 +121,157 @@ export const Step3HandoverMethod = ({ onNext }: Step3HandoverMethodProps) => {
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Pickup Timing</Text>
-              <View style={styles.timingOptions}>
-                {(['ASAP', 'TODAY', 'SCHEDULE'] as const).map((timing) => (
+            <Text style={styles.subLabel}>Pickup timing</Text>
+            <View style={styles.timingRow}>
+              {(['ASAP', 'TODAY', 'SCHEDULE'] as const).map((t) => {
+                const selected = pickupTiming === t;
+                return (
                   <Pressable
-                    key={timing}
-                    style={[
-                      styles.timingOption,
-                      pickupTiming === timing && styles.timingSelected,
+                    key={t}
+                    onPress={() => setPickupTiming(t)}
+                    style={({ pressed }) => [
+                      styles.timingChip,
+                      selected ? styles.timingChipSelected : null,
+                      pressed ? styles.pressed : null,
                     ]}
-                    onPress={() => setPickupTiming(timing)}
                   >
-                    <Text
-                      style={[
-                        styles.timingText,
-                        pickupTiming === timing && styles.timingTextSelected,
-                      ]}
-                    >
-                      {timing === 'ASAP'
-                        ? 'ASAP'
-                        : timing === 'TODAY'
-                        ? 'Today'
-                        : 'Schedule Later'}
+                    <Text style={[styles.timingText, selected ? styles.timingTextSelected : null]}>
+                      {t === 'ASAP' ? 'ASAP' : t === 'TODAY' ? 'Today' : 'Schedule'}
                     </Text>
                   </Pressable>
-                ))}
-              </View>
+                );
+              })}
             </View>
           </View>
-        )}
+        ) : null}
 
-        <PriceSummary basePrice={basePrice} additionalFee={pickupFee} />
+        <PriceSummary />
+        <View style={{ height: 10 }} />
       </ScrollView>
 
       <ContinueButton onPress={handleContinue} disabled={!canContinue} />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  scroll: { flex: 1 },
+  content: { paddingBottom: 12 },
+
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    padding: 14,
   },
-  content: {
-    flex: 1,
-  },
-  optionsContainer: {
-    paddingHorizontal: 18,
-    gap: 12,
-    marginBottom: 20,
-  },
+
   option: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.55)',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 10,
   },
   optionSelected: {
-    borderColor: '#34B67A',
-    backgroundColor: 'rgba(52,182,122,0.05)',
+    backgroundColor: 'rgba(52,182,122,0.06)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
   },
   optionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(52,182,122,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginTop: 2,
   },
-  optionContent: {
-    flex: 1,
-  },
+  optionBody: { flex: 1 },
   optionTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0B1220',
-    marginBottom: 4,
-  },
-  titleSelected: {
-    color: '#34B67A',
-  },
-  optionDescription: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  optionPrice: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#6B7280',
-  },
-  feePrice: {
-    color: '#34B67A',
-  },
-  pickupDetailsCard: {
-    marginHorizontal: 18,
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
-  },
-  detailsTitle: {
     fontSize: 17,
-    fontWeight: '900',
-    color: '#0B1220',
-    marginBottom: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 3,
   },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
+  optionDesc: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#6B7280',
-    marginBottom: 8,
+    lineHeight: 20,
+    marginBottom: 6,
   },
+  optionMeta: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  feeMeta: {
+    color: '#1F7A4E',
+  },
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(60,60,67,0.18)',
+    marginVertical: 6,
+  },
+
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 10,
+  },
+
+  field: { marginBottom: 12 },
+  label: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+
   input: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.08)',
     borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0B1220',
-  },
-  timingOptions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  timingOption: {
-    flex: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    paddingHorizontal: 12,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.08)',
-    alignItems: 'center',
+    fontSize: 17,
+    fontWeight: '400',
+    color: '#111827',
   },
-  timingSelected: {
-    borderColor: '#34B67A',
-    backgroundColor: 'rgba(52,182,122,0.05)',
+  multiline: { minHeight: 52, textAlignVertical: 'top' },
+
+  subLabel: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+
+  timingRow: { flexDirection: 'row', gap: 10 },
+  timingChip: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    backgroundColor: '#FFFFFF',
+  },
+  timingChipSelected: {
+    borderColor: 'rgba(52,182,122,0.55)',
+    backgroundColor: 'rgba(52,182,122,0.06)',
   },
   timingText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
   },
-  timingTextSelected: {
-    color: '#34B67A',
-  },
+  timingTextSelected: { color: '#1F7A4E' },
+
+  pressed: { backgroundColor: 'rgba(0,0,0,0.03)' },
 });
