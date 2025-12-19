@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MapPin } from 'lucide-react-native';
 import { StepHeader } from '../components/StepHeader';
 import { ContinueButton } from '../components/ContinueButton';
-import { useSendParcel, Route, Location } from '../context/SendParcelContext';
-import { MapPin, Navigation } from 'lucide-react-native';
+import { Route, useSendParcel } from '../context/SendParcelContext';
 
 type Step2RouteProps = {
   onNext: () => void;
@@ -28,7 +28,7 @@ const GHANA_REGIONS = [
   'Western North',
 ];
 
-export const Step2Route = ({ onNext }: Step2RouteProps) => {
+export function Step2Route({ onNext }: Step2RouteProps) {
   const { route, updateRoute } = useSendParcel();
 
   const [originRegion, setOriginRegion] = useState(route?.origin.region || '');
@@ -41,72 +41,76 @@ export const Step2Route = ({ onNext }: Step2RouteProps) => {
   const [destLandmark, setDestLandmark] = useState(route?.destination.landmark || '');
   const [showDestRegions, setShowDestRegions] = useState(false);
 
-  const handleContinue = () => {
-    if (originRegion && originCity && destRegion && destCity) {
-      const routeData: Route = {
-        origin: {
-          region: originRegion,
-          cityTown: originCity,
-          landmark: originLandmark || undefined,
-        },
-        destination: {
-          region: destRegion,
-          cityTown: destCity,
-          landmark: destLandmark || undefined,
-        },
-      };
-      updateRoute(routeData);
-      onNext();
-    }
-  };
+  const canContinue = useMemo(
+    () => Boolean(originRegion && originCity && destRegion && destCity),
+    [originRegion, originCity, destRegion, destCity]
+  );
 
-  const canContinue = originRegion && originCity && destRegion && destCity;
+  const handleContinue = () => {
+    if (!canContinue) return;
+
+    const routeData: Route = {
+      origin: {
+        region: originRegion,
+        cityTown: originCity,
+        landmark: originLandmark || undefined,
+      },
+      destination: {
+        region: destRegion,
+        cityTown: destCity,
+        landmark: destLandmark || undefined,
+      },
+    };
+
+    updateRoute(routeData);
+    onNext();
+  };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <StepHeader
-          title="Route"
-          subtitle="Where is the parcel coming from and going to?"
-        />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <StepHeader title="Route" subtitle="Where is the parcel coming from and going to?" />
 
-        <View style={styles.routeCard}>
-          <View style={styles.routeHeader}>
-            <MapPin size={20} color="#34B67A" />
-            <Text style={styles.routeTitle}>Origin (From)</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrap}>
+              <MapPin size={18} color="#1F7A4E" strokeWidth={2} />
+            </View>
+            <Text style={styles.cardTitle}>Origin (From)</Text>
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={styles.field}>
             <Text style={styles.label}>Region *</Text>
             <Pressable
-              style={styles.dropdownButton}
-              onPress={() => setShowOriginRegions(!showOriginRegions)}
+              onPress={() => setShowOriginRegions((v) => !v)}
+              style={({ pressed }) => [styles.dropdownBtn, pressed ? styles.pressed : null]}
             >
-              <Text style={[styles.dropdownText, !originRegion && styles.placeholder]}>
+              <Text style={[styles.dropdownText, !originRegion ? styles.placeholder : null]}>
                 {originRegion || 'Select region'}
               </Text>
             </Pressable>
-            {showOriginRegions && (
+
+            {showOriginRegions ? (
               <View style={styles.dropdown}>
                 <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
-                  {GHANA_REGIONS.map((region) => (
+                  {GHANA_REGIONS.map((r) => (
                     <Pressable
-                      key={region}
-                      style={styles.dropdownItem}
+                      key={r}
                       onPress={() => {
-                        setOriginRegion(region);
+                        setOriginRegion(r);
                         setShowOriginRegions(false);
                       }}
+                      style={({ pressed }) => [styles.dropdownItem, pressed ? styles.pressed : null]}
                     >
-                      <Text style={styles.dropdownItemText}>{region}</Text>
+                      <Text style={styles.dropdownItemText}>{r}</Text>
                     </Pressable>
                   ))}
                 </ScrollView>
               </View>
-            )}
+            ) : null}
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={styles.field}>
             <Text style={styles.label}>City/Town *</Text>
             <TextInput
               style={styles.input}
@@ -117,197 +121,187 @@ export const Step2Route = ({ onNext }: Step2RouteProps) => {
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Landmark (Optional)</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Landmark (optional)</Text>
             <TextInput
               style={styles.input}
               value={originLandmark}
               onChangeText={setOriginLandmark}
-              placeholder="e.g., Near Oxford Street"
+              placeholder="e.g., Shell station, opposite mosque"
               placeholderTextColor="#9CA3AF"
             />
           </View>
         </View>
 
-        <View style={styles.routeCard}>
-          <View style={styles.routeHeader}>
-            <Navigation size={20} color="#34B67A" />
-            <Text style={styles.routeTitle}>Destination (To)</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrap}>
+              <MapPin size={18} color="#1F7A4E" strokeWidth={2} />
+            </View>
+            <Text style={styles.cardTitle}>Destination (To)</Text>
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={styles.field}>
             <Text style={styles.label}>Region *</Text>
             <Pressable
-              style={styles.dropdownButton}
-              onPress={() => setShowDestRegions(!showDestRegions)}
+              onPress={() => setShowDestRegions((v) => !v)}
+              style={({ pressed }) => [styles.dropdownBtn, pressed ? styles.pressed : null]}
             >
-              <Text style={[styles.dropdownText, !destRegion && styles.placeholder]}>
+              <Text style={[styles.dropdownText, !destRegion ? styles.placeholder : null]}>
                 {destRegion || 'Select region'}
               </Text>
             </Pressable>
-            {showDestRegions && (
+
+            {showDestRegions ? (
               <View style={styles.dropdown}>
                 <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
-                  {GHANA_REGIONS.map((region) => (
+                  {GHANA_REGIONS.map((r) => (
                     <Pressable
-                      key={region}
-                      style={styles.dropdownItem}
+                      key={r}
                       onPress={() => {
-                        setDestRegion(region);
+                        setDestRegion(r);
                         setShowDestRegions(false);
                       }}
+                      style={({ pressed }) => [styles.dropdownItem, pressed ? styles.pressed : null]}
                     >
-                      <Text style={styles.dropdownItemText}>{region}</Text>
+                      <Text style={styles.dropdownItemText}>{r}</Text>
                     </Pressable>
                   ))}
                 </ScrollView>
               </View>
-            )}
+            ) : null}
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={styles.field}>
             <Text style={styles.label}>City/Town *</Text>
             <TextInput
               style={styles.input}
               value={destCity}
               onChangeText={setDestCity}
-              placeholder="e.g., Takoradi, Tema"
+              placeholder="e.g., Cape Coast, Tamale"
               placeholderTextColor="#9CA3AF"
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Landmark (Optional)</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Landmark (optional)</Text>
             <TextInput
               style={styles.input}
               value={destLandmark}
               onChangeText={setDestLandmark}
-              placeholder="e.g., Near Market Circle"
+              placeholder="e.g., White gate, behind market"
               placeholderTextColor="#9CA3AF"
             />
           </View>
         </View>
 
-        {canContinue && (
-          <View style={styles.routeSummary}>
-            <Text style={styles.summaryText}>
-              From: {originCity}, {originRegion}
-            </Text>
-            <Text style={styles.summaryArrow}>→</Text>
-            <Text style={styles.summaryText}>
-              To: {destCity}, {destRegion}
-            </Text>
-          </View>
-        )}
+        <View style={{ height: 10 }} />
       </ScrollView>
 
       <ContinueButton onPress={handleContinue} disabled={!canContinue} />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  routeCard: {
-    marginHorizontal: 18,
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 16,
+  container: { flex: 1 },
+  scroll: { flex: 1 },
+  content: { paddingBottom: 12 },
+
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
+    borderColor: 'rgba(60,60,67,0.18)',
+    padding: 14,
   },
-  routeHeader: {
+
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: 12,
+    gap: 10,
   },
-  routeTitle: {
+
+  iconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: 'rgba(52,182,122,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  cardTitle: {
     fontSize: 17,
-    fontWeight: '900',
-    color: '#0B1220',
+    fontWeight: '600',
+    color: '#111827',
   },
-  inputGroup: {
-    marginBottom: 16,
+
+  field: {
+    marginBottom: 12,
   },
+
   label: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '400',
     color: '#6B7280',
-    marginBottom: 8,
+    marginBottom: 6,
   },
+
   input: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.08)',
     borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0B1220',
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 17,
+    fontWeight: '400',
+    color: '#111827',
   },
-  dropdownButton: {
+
+  dropdownBtn: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.08)',
     borderRadius: 12,
-    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   dropdownText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0B1220',
+    fontSize: 17,
+    fontWeight: '400',
+    color: '#111827',
   },
   placeholder: {
     color: '#9CA3AF',
   },
+
   dropdown: {
     marginTop: 8,
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.08)',
-    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    overflow: 'hidden',
   },
   dropdownScroll: {
-    maxHeight: 200,
+    maxHeight: 220,
+    backgroundColor: '#FFFFFF',
   },
   dropdownItem: {
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   dropdownItemText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#0B1220',
+    fontWeight: '400',
+    color: '#111827',
   },
-  routeSummary: {
-    marginHorizontal: 18,
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: 'rgba(52,182,122,0.08)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(52,182,122,0.18)',
-    alignItems: 'center',
-  },
-  summaryText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#0B1220',
-    textAlign: 'center',
-  },
-  summaryArrow: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#34B67A',
-    marginVertical: 4,
+
+  pressed: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
 });
