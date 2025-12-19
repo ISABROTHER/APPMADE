@@ -12,14 +12,18 @@ import {
   ShieldCheck,
   KeyRound,
   Trash2,
-  LogOut,
+  LogOut, 
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ProfileSectionCard } from './components/ProfileSectionCard';
 import { ProfileRow } from './components/ProfileRow';
 import { UserDetailsCard } from './components/UserDetailsCard';
- 
+
+const BG = '#F2F2F7'; // iOS grouped background
+const TEXT = '#111827';
+const MUTED = '#6B7280';
+
 export default function ProfileHomeScreen() {
   const { user, signOut } = useAuth();
   const [userProfile, setUserProfile] = useState<any>(null);
