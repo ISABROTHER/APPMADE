@@ -1,71 +1,107 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { SendParcelProvider, useSendParcel } from './send/context/SendParcelContext';
-import { ProgressBar } from './send/components/ProgressBar';
-import { Step1Size } from './send/steps/Step1Size';
-import { Step2Route } from './send/steps/Step2Route';
-import { Step3HandoverMethod } from './send/steps/Step3HandoverMethod';
-import { Step4Parties } from './send/steps/Step4Parties';
-import { Step5Summary } from './send/steps/Step5Summary';
-import { Step6SecureHandover } from './send/steps/Step6SecureHandover';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useSendParcel } from '../context/SendParcelContext';
+import { formatPrice } from '../config/pricing';
 
-const TOTAL_STEPS = 6;
+type PriceSummaryProps = {
+  basePrice?: number;
+  additionalFee?: number;
+  total?: number;
+};
 
-const SendParcelFlow = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const { reset } = useSendParcel();
+export const PriceSummary = ({ basePrice, additionalFee, total }: PriceSummaryProps) => {
+  const ctx = useSendParcel();
 
-  const handleNext = () => {
-    if (currentStep < TOTAL_STEPS) setCurrentStep(currentStep + 1);
-  };
+  const selectedSize = ctx.selectedSize;
+  const selectedDeliveryMethod = ctx.selectedDeliveryMethod;
 
-  const handleComplete = () => {
-    reset();
-    setCurrentStep(1);
-  };
+  const computedBase = typeof basePrice === 'number' ? basePrice : ctx.basePrice;
+  const computedFee = typeof additionalFee === 'number' ? additionalFee : ctx.pickupFee;
+  const computedTotal = typeof total === 'number' ? total : ctx.totalPrice;
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <Step1Size onNext={handleNext} />;
-      case 2:
-        return <Step2Route onNext={handleNext} />;
-      case 3:
-        return <Step3HandoverMethod onNext={handleNext} />;
-      case 4:
-        return <Step4Parties onNext={handleNext} />;
-      case 5:
-        return <Step5Summary onComplete={handleNext} />;
-      case 6:
-        return <Step6SecureHandover onComplete={handleComplete} />;
-      default:
-        return <Step1Size onNext={handleNext} />;
-    }
-  };
+  if (!selectedSize) return null;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ProgressBar currentStep={currentStep} totalSteps={TOTAL_STEPS} />
-      <View style={styles.stepContainer}>{renderStep()}</View>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <Text style={styles.label}>Parcel</Text>
+        <Text style={styles.value}>{selectedSize.label}</Text>
+      </View>
+
+      {selectedDeliveryMethod && selectedDeliveryMethod.additionalCost > 0 ? (
+        <View style={styles.row}>
+          <Text style={styles.label}>{selectedDeliveryMethod.label}</Text>
+          <Text style={styles.value}>{formatPrice(selectedDeliveryMethod.additionalCost)}</Text>
+        </View>
+      ) : null}
+
+      {computedFee > 0 ? (
+        <View style={styles.row}>
+          <Text style={styles.label}>Pickup fee</Text>
+          <Text style={styles.value}>{formatPrice(computedFee)}</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.divider} />
+
+      <View style={styles.row}>
+        <Text style={styles.totalLabel}>Total</Text>
+        <Text style={styles.totalValue}>{formatPrice(computedTotal)}</Text>
+      </View>
+
+      {/* optional: keep base visible if needed */}
+      {computedBase > 0 ? (
+        <Text style={styles.caption}>Includes base price {formatPrice(computedBase)}</Text>
+      ) : null}
+    </View>
   );
 };
 
-export default function SendScreen() {
-  return (
-    <SendParcelProvider>
-      <SendParcelFlow />
-    </SendParcelProvider>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7', // iOS grouped background
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+    marginHorizontal: 16,
+    marginBottom: 14,
   },
-  stepContainer: {
-    flex: 1,
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#6B7280',
+  },
+  value: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(60,60,67,0.18)',
+    marginVertical: 8,
+  },
+  totalLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  totalValue: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#34B67A',
+  },
+  caption: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#6B7280',
   },
 });
