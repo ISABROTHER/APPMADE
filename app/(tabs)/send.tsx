@@ -1,107 +1,65 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useSendParcel } from '../context/SendParcelContext';
-import { formatPrice } from '../config/pricing';
+import React, { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { SendParcelProvider } from './send/context/SendParcelContext';
+import { ProgressBar } from './send/components/ProgressBar';
+import { Step1Size } from './send/steps/Step1Size';
+import { Step2DeliveryMethod } from './send/steps/Step2DeliveryMethod';
+import { Step3Sender } from './send/steps/Step3Sender';
+import { Step4Recipient } from './send/steps/Step4Recipient';
+import { Step5Summary } from './send/steps/Step5Summary';
 
-type PriceSummaryProps = {
-  basePrice?: number;
-  additionalFee?: number;
-  total?: number;
-};
+const BG = '#F2F2F7';
 
-export const PriceSummary = ({ basePrice, additionalFee, total }: PriceSummaryProps) => {
-  const ctx = useSendParcel();
+export default function SendScreen() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 5;
 
-  const selectedSize = ctx.selectedSize;
-  const selectedDeliveryMethod = ctx.selectedDeliveryMethod;
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
 
-  const computedBase = typeof basePrice === 'number' ? basePrice : ctx.basePrice;
-  const computedFee = typeof additionalFee === 'number' ? additionalFee : ctx.pickupFee;
-  const computedTotal = typeof total === 'number' ? total : ctx.totalPrice;
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
 
-  if (!selectedSize) return null;
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <Step1Size onNext={handleNext} />;
+      case 2:
+        return <Step2DeliveryMethod onNext={handleNext} onBack={handleBack} />;
+      case 3:
+        return <Step3Sender onNext={handleNext} onBack={handleBack} />;
+      case 4:
+        return <Step4Recipient onNext={handleNext} onBack={handleBack} />;
+      case 5:
+        return <Step5Summary onBack={handleBack} />;
+      default:
+        return <Step1Size onNext={handleNext} />;
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.row}>
-        <Text style={styles.label}>Parcel</Text>
-        <Text style={styles.value}>{selectedSize.label}</Text>
-      </View>
-
-      {selectedDeliveryMethod && selectedDeliveryMethod.additionalCost > 0 ? (
-        <View style={styles.row}>
-          <Text style={styles.label}>{selectedDeliveryMethod.label}</Text>
-          <Text style={styles.value}>{formatPrice(selectedDeliveryMethod.additionalCost)}</Text>
-        </View>
-      ) : null}
-
-      {computedFee > 0 ? (
-        <View style={styles.row}>
-          <Text style={styles.label}>Pickup fee</Text>
-          <Text style={styles.value}>{formatPrice(computedFee)}</Text>
-        </View>
-      ) : null}
-
-      <View style={styles.divider} />
-
-      <View style={styles.row}>
-        <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>{formatPrice(computedTotal)}</Text>
-      </View>
-
-      {/* optional: keep base visible if needed */}
-      {computedBase > 0 ? (
-        <Text style={styles.caption}>Includes base price {formatPrice(computedBase)}</Text>
-      ) : null}
-    </View>
+    <SendParcelProvider>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ProgressBar currentStep={currentStep} totalSteps={totalSteps} />
+        <View style={styles.content}>{renderStep()}</View>
+      </SafeAreaView>
+    </SendParcelProvider>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(60,60,67,0.18)',
-    marginHorizontal: 16,
-    marginBottom: 14,
+    flex: 1,
+    backgroundColor: BG,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: '#6B7280',
-  },
-  value: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(60,60,67,0.18)',
-    marginVertical: 8,
-  },
-  totalLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  totalValue: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#34B67A',
-  },
-  caption: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: '400',
-    color: '#6B7280',
+  content: {
+    flex: 1,
   },
 });
