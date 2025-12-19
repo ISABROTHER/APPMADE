@@ -1,10 +1,22 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, type ReactNode } from 'react';
 import { calculateTotalPrice } from '../config/pricing';
+import type { DeliveryMethod } from '../config/deliveryMethods';
 
 export type ParcelDetails = {
   size: 'small' | 'medium' | 'large';
   weightRange: string;
   category?: string;
+};
+
+export type SenderInfo = {
+  name: string;
+  phone: string;
+};
+
+export type RecipientInfo = {
+  name: string;
+  phone: string;
+  landmark?: string;
 };
 
 export type Location = {
@@ -46,17 +58,6 @@ export type Handover = {
   selectedAgent?: Agent;
 };
 
-export type SenderInfo = {
-  name: string;
-  phone: string;
-};
-
-export type RecipientInfo = {
-  name: string;
-  phone: string;
-  landmark?: string;
-};
-
 export type Security = {
   shipmentCode: string;
   senderPin: string;
@@ -65,20 +66,33 @@ export type Security = {
 
 type SendParcelContextType = {
   parcel: ParcelDetails | null;
+
+  // Keep these for future expansion (route/handover are referenced in your Summary file)
   route: Route | null;
   handover: Handover | null;
+  security: Security | null;
+
+  // Current flow uses deliveryMethods
+  selectedDeliveryMethod: DeliveryMethod | null;
+
   sender: SenderInfo | null;
   recipient: RecipientInfo | null;
-  security: Security | null;
+
   totalPrice: number;
   basePrice: number;
+
+  // "pickupFee" is used in your UI; here it represents total extra fees (delivery method add-on + pickup if you later enable it)
   pickupFee: number;
+
   updateParcel: (parcel: ParcelDetails) => void;
   updateRoute: (route: Route) => void;
   updateHandover: (handover: Handover) => void;
+  updateDeliveryMethod: (method: DeliveryMethod) => void;
+
   updateSender: (sender: SenderInfo) => void;
   updateRecipient: (recipient: RecipientInfo) => void;
   updateSecurity: (security: Security) => void;
+
   reset: () => void;
 };
 
@@ -86,19 +100,30 @@ const SendParcelContext = createContext<SendParcelContextType | undefined>(undef
 
 export const SendParcelProvider = ({ children }: { children: ReactNode }) => {
   const [parcel, setParcel] = useState<ParcelDetails | null>(null);
+
+  // keep for future (your repo has steps for these)
   const [route, setRoute] = useState<Route | null>(null);
   const [handover, setHandover] = useState<Handover | null>(null);
-  const [sender, setSender] = useState<SenderInfo | null>(null);
-  const [recipient, setRecipient] = useState<RecipientInfo | null>(null);
   const [security, setSecurity] = useState<Security | null>(null);
 
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<DeliveryMethod | null>(null);
+
+  const [sender, setSender] = useState<SenderInfo | null>(null);
+  const [recipient, setRecipient] = useState<RecipientInfo | null>(null);
+
   const basePrice = parcel ? getPriceForParcel(parcel.size, parcel.weightRange) : 0;
-  const pickupFee = handover?.method === 'PICKUP' ? 15 : 0;
+
+  const deliveryFee = selectedDeliveryMethod?.additionalCost ?? 0;
+  const handoverPickupFee = handover?.method === 'PICKUP' ? 15 : 0;
+
+  const pickupFee = deliveryFee + handoverPickupFee;
   const totalPrice = calculateTotalPrice(basePrice, pickupFee);
 
   const updateParcel = (p: ParcelDetails) => setParcel(p);
   const updateRoute = (r: Route) => setRoute(r);
   const updateHandover = (h: Handover) => setHandover(h);
+  const updateDeliveryMethod = (m: DeliveryMethod) => setSelectedDeliveryMethod(m);
+
   const updateSender = (s: SenderInfo) => setSender(s);
   const updateRecipient = (r: RecipientInfo) => setRecipient(r);
   const updateSecurity = (s: Security) => setSecurity(s);
@@ -110,6 +135,7 @@ export const SendParcelProvider = ({ children }: { children: ReactNode }) => {
     setSender(null);
     setRecipient(null);
     setSecurity(null);
+    setSelectedDeliveryMethod(null);
   };
 
   return (
@@ -118,15 +144,17 @@ export const SendParcelProvider = ({ children }: { children: ReactNode }) => {
         parcel,
         route,
         handover,
+        security,
+        selectedDeliveryMethod,
         sender,
         recipient,
-        security,
         totalPrice,
         basePrice,
         pickupFee,
         updateParcel,
         updateRoute,
         updateHandover,
+        updateDeliveryMethod,
         updateSender,
         updateRecipient,
         updateSecurity,
@@ -140,9 +168,7 @@ export const SendParcelProvider = ({ children }: { children: ReactNode }) => {
 
 export const useSendParcel = () => {
   const context = useContext(SendParcelContext);
-  if (!context) {
-    throw new Error('useSendParcel must be used within SendParcelProvider');
-  }
+  if (!context) throw new Error('useSendParcel must be used within SendParcelProvider');
   return context;
 };
 
@@ -162,5 +188,6 @@ function getPriceForParcel(size: string, weightRange: string): number {
 
   const base = basePrices[size] || 25;
   const multiplier = weightMultipliers[weightRange] || 1.0;
+
   return Math.round(base * multiplier);
 }
