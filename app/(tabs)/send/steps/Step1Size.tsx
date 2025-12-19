@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Box, FileText, Package } from 'lucide-react-native';
 import { StepHeader } from '../components/StepHeader';
 import { ContinueButton } from '../components/ContinueButton';
-import { useSendParcel, ParcelDetails } from '../context/SendParcelContext';
+import { useSendParcel } from '../context/SendParcelContext';
 import { formatPrice } from '../config/pricing';
-import { Package, Box, FileText } from 'lucide-react-native';
 
 type Step1SizeProps = {
   onNext: () => void;
@@ -17,251 +17,278 @@ const SIZES = [
 ] as const;
 
 const WEIGHT_RANGES = [
-  { id: '0-1kg', label: '0 - 1 kg' },
-  { id: '1-5kg', label: '1 - 5 kg' },
-  { id: '5-10kg', label: '5 - 10 kg' },
-  { id: '10-25kg', label: '10 - 25 kg' },
+  { id: '0-1kg', label: '0 – 1 kg' },
+  { id: '1-5kg', label: '1 – 5 kg' },
+  { id: '5-10kg', label: '5 – 10 kg' },
+  { id: '10-25kg', label: '10 – 25 kg' },
 ] as const;
 
-const CATEGORIES = [
-  'Document',
-  'Box',
-  'Food',
-  'Electronics',
-  'Fragile',
-  'Other',
-] as const;
+const CATEGORIES = ['Document', 'Box', 'Food', 'Electronics', 'Fragile', 'Other'] as const;
 
-export const Step1Size = ({ onNext }: Step1SizeProps) => {
+export function Step1Size({ onNext }: Step1SizeProps) {
   const { parcel, updateParcel, basePrice } = useSendParcel();
-  const [size, setSize] = useState<'small' | 'medium' | 'large' | null>(
-    parcel?.size || null
-  );
-  const [weightRange, setWeightRange] = useState<string | null>(
-    parcel?.weightRange || null
-  );
+
+  const [size, setSize] = useState<'small' | 'medium' | 'large' | null>(parcel?.size || null);
+  const [weightRange, setWeightRange] = useState<string | null>(parcel?.weightRange || null);
   const [category, setCategory] = useState<string | undefined>(parcel?.category);
 
+  const canContinue = useMemo(() => Boolean(size && weightRange), [size, weightRange]);
+
   const handleContinue = () => {
-    if (size && weightRange) {
-      updateParcel({ size, weightRange, category });
-      onNext();
-    }
+    if (!size || !weightRange) return;
+    updateParcel({ size, weightRange, category });
+    onNext();
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <StepHeader
-          title="Parcel Details"
-          subtitle="Tell us about the parcel you want to send"
-        />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepHeader title="Parcel details" subtitle="Select size, weight and category." />
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Send in Ghana - Nationwide</Text>
-          <Text style={styles.infoItem}>✓ Tracking included</Text>
-          <Text style={styles.infoItem}>✓ Secure handover with PIN</Text>
-          <Text style={styles.infoItem}>✓ Verified agents nationwide</Text>
+        <View style={styles.noteCard}>
+          <Text style={styles.noteTitle}>Nationwide delivery in Ghana</Text>
+          <Text style={styles.noteLine}>• Tracking included</Text>
+          <Text style={styles.noteLine}>• Secure handover with PIN</Text>
+          <Text style={styles.noteLine}>• Verified agents nationwide</Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Size</Text>
-          <View style={styles.optionsRow}>
-            {SIZES.map((s) => {
-              const Icon = s.icon;
-              const isSelected = size === s.id;
-              return (
-                <Pressable
-                  key={s.id}
-                  style={[styles.sizeOption, isSelected && styles.optionSelected]}
-                  onPress={() => setSize(s.id)}
-                >
-                  <Icon size={28} color={isSelected ? '#34B67A' : '#6B7280'} />
-                  <Text style={[styles.optionLabel, isSelected && styles.labelSelected]}>
-                    {s.label}
-                  </Text>
-                  <Text style={styles.optionDimensions}>{s.dimensions}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        <Text style={styles.sectionTitle}>Size</Text>
+        <View style={styles.row}>
+          {SIZES.map((s) => {
+            const Icon = s.icon;
+            const selected = size === s.id;
+
+            return (
+              <Pressable
+                key={s.id}
+                onPress={() => setSize(s.id)}
+                style={({ pressed }) => [
+                  styles.optionCard,
+                  selected ? styles.optionSelected : null,
+                  pressed ? styles.optionPressed : null,
+                ]}
+              >
+                <Icon size={22} color={selected ? '#34B67A' : '#6B7280'} />
+                <Text style={[styles.optionTitle, selected ? styles.optionTitleSelected : null]}>
+                  {s.label}
+                </Text>
+                <Text style={styles.optionMeta}>{s.dimensions}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Weight Range</Text>
-          <View style={styles.optionsColumn}>
-            {WEIGHT_RANGES.map((w) => {
-              const isSelected = weightRange === w.id;
-              return (
-                <Pressable
-                  key={w.id}
-                  style={[styles.weightOption, isSelected && styles.optionSelected]}
-                  onPress={() => setWeightRange(w.id)}
-                >
-                  <Text style={[styles.weightLabel, isSelected && styles.labelSelected]}>
-                    {w.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        <Text style={styles.sectionTitle}>Weight range</Text>
+        <View style={styles.stack}>
+          {WEIGHT_RANGES.map((w) => {
+            const selected = weightRange === w.id;
+
+            return (
+              <Pressable
+                key={w.id}
+                onPress={() => setWeightRange(w.id)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  selected ? styles.listItemSelected : null,
+                  pressed ? styles.listItemPressed : null,
+                ]}
+              >
+                <Text style={[styles.listText, selected ? styles.listTextSelected : null]}>{w.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Category (Optional)</Text>
-          <View style={styles.categoryGrid}>
-            {CATEGORIES.map((c) => {
-              const isSelected = category === c;
-              return (
-                <Pressable
-                  key={c}
-                  style={[styles.categoryOption, isSelected && styles.optionSelected]}
-                  onPress={() => setCategory(isSelected ? undefined : c)}
-                >
-                  <Text style={[styles.categoryLabel, isSelected && styles.labelSelected]}>
-                    {c}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        <Text style={styles.sectionTitle}>Category (optional)</Text>
+        <View style={styles.chips}>
+          {CATEGORIES.map((c) => {
+            const selected = category === c;
+
+            return (
+              <Pressable
+                key={c}
+                onPress={() => setCategory(selected ? undefined : c)}
+                style={({ pressed }) => [
+                  styles.chip,
+                  selected ? styles.chipSelected : null,
+                  pressed ? styles.chipPressed : null,
+                ]}
+              >
+                <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>{c}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        {size && weightRange && (
-          <View style={styles.pricePreview}>
-            <Text style={styles.priceLabel}>Estimated Price</Text>
+        {canContinue ? (
+          <View style={styles.priceCard}>
+            <Text style={styles.priceLabel}>Estimated price</Text>
             <Text style={styles.priceValue}>{formatPrice(basePrice)}</Text>
           </View>
-        )}
+        ) : null}
+
+        <View style={styles.bottomPad} />
       </ScrollView>
 
-      <ContinueButton onPress={handleContinue} disabled={!size || !weightRange} />
+      <ContinueButton onPress={handleContinue} disabled={!canContinue} />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  infoBox: {
-    marginHorizontal: 18,
-    marginBottom: 20,
-    padding: 16,
+  container: { flex: 1 },
+  scroll: { flex: 1 },
+  content: { paddingBottom: 12 },
+
+  noteCard: {
+    marginHorizontal: 16,
+    marginBottom: 18,
     backgroundColor: 'rgba(52,182,122,0.08)',
-    borderRadius: 16,
-    borderWidth: 1,
     borderColor: 'rgba(52,182,122,0.18)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
   },
-  infoTitle: {
+  noteTitle: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#0B1220',
+    fontWeight: '600',
+    color: '#111827',
     marginBottom: 8,
   },
-  infoItem: {
-    fontSize: 13,
-    fontWeight: '700',
+  noteLine: {
+    fontSize: 14,
+    fontWeight: '400',
     color: '#6B7280',
-    marginBottom: 4,
+    lineHeight: 20,
   },
-  section: {
-    marginHorizontal: 18,
-    marginBottom: 24,
-  },
+
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0B1220',
-    marginBottom: 12,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    marginTop: 6,
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#111827',
   },
-  optionsRow: {
+
+  row: {
     flexDirection: 'row',
     gap: 10,
+    paddingHorizontal: 16,
+    marginBottom: 18,
   },
-  sizeOption: {
+  optionCard: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.55)',
   },
   optionSelected: {
-    borderColor: '#34B67A',
+    borderColor: 'rgba(52,182,122,0.55)',
     backgroundColor: 'rgba(52,182,122,0.05)',
   },
-  optionLabel: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#0B1220',
+  optionPressed: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  optionTitle: {
     marginTop: 8,
-  },
-  labelSelected: {
-    color: '#34B67A',
-  },
-  optionDimensions: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  optionsColumn: {
-    gap: 10,
-  },
-  weightOption: {
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.55)',
-  },
-  weightLabel: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#0B1220',
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#111827',
   },
-  categoryGrid: {
+  optionTitleSelected: { color: '#1F7A4E' },
+  optionMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#6B7280',
+  },
+
+  stack: {
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 18,
+  },
+  listItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
+  },
+  listItemSelected: {
+    borderColor: 'rgba(52,182,122,0.55)',
+    backgroundColor: 'rgba(52,182,122,0.05)',
+  },
+  listItemPressed: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  listText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  listTextSelected: { color: '#1F7A4E' },
+
+  chips: {
+    paddingHorizontal: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+    marginBottom: 18,
   },
-  categoryOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.55)',
+  chip: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.18)',
   },
-  categoryLabel: {
+  chipSelected: {
+    borderColor: 'rgba(52,182,122,0.55)',
+    backgroundColor: 'rgba(52,182,122,0.05)',
+  },
+  chipPressed: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  chipText: {
     fontSize: 14,
-    fontWeight: '900',
-    color: '#0B1220',
+    fontWeight: '500',
+    color: '#111827',
   },
-  pricePreview: {
-    marginHorizontal: 18,
-    marginBottom: 20,
-    padding: 20,
+  chipTextSelected: { color: '#1F7A4E' },
+
+  priceCard: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 10,
+    borderRadius: 14,
+    padding: 16,
     backgroundColor: '#34B67A',
-    borderRadius: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   priceLabel: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '500',
     color: '#FFFFFF',
   },
   priceValue: {
-    fontSize: 24,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
+
+  bottomPad: { height: 10 },
 });
